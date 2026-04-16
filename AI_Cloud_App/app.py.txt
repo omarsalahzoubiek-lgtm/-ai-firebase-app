@@ -1,0 +1,111 @@
+import os
+import json
+from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
+from groq import Groq
+from dotenv import load_dotenv
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+# تحميل المتغيرات البيئية (للتشغيل المحلي إن وجد)
+load_dotenv()
+
+app = Flask(__name__)
+CORS(app)
+
+# 1. جلب مفتاح الذكاء الاصطناعي من السحابة
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+client = Groq(api_key=GROQ_API_KEY)
+
+# ==========================================
+# 2. الاتصال بقاعدة بيانات Firebase المنيعة
+# ==========================================
+try:
+    # السحابة ستقرأ محتوى ملف JSON السري كـ "نص"
+    firebase_cred_json = os.getenv("FIREBASE_CREDENTIALS")
+    
+    if firebase_cred_json:
+        # تحويل النص إلى قاموس Dictionary ليفهمه بايثون
+        cred_dict = json.loads(firebase_cred_json)
+        cred = credentials.Certificate(cred_dict)
+        firebase_admin.initialize_app(cred)
+        
+        # تفعيل الاتصال بـ Firestore
+        db = firestore.client()
+        print("✅ تم الاتصال بـ Firebase Firestore بنجاح")
+    else:
+        print("⚠️ تحذير: مفاتيح Firebase غير موجودة في بيئة العمل.")
+except Exception as e:
+    print(f"❌ خطأ في الاتصال بـ Firebase: {e}")
+
+# ==========================================
+# 3. مسارات الموقع (Routes)
+# ==========================================
+
+# المسار الرئيسي: لعرض واجهة المستخدم (HTML)
+@app.route('/', methods=['GET'])
+def home():
+    return render_template('index.html')
+
+# مسار المحادثة: يستقبل السؤال، يسأل Groq، ويحفظ في Firebase
+@app.route('/ask', methods=['POST'])
+def ask_ai():
+    data = request.json
+    user_question = data.get("question", "").strip()
+
+    if not user_question:
+        return jsonify({"error": "الرجاء كتابة سؤال"}), 400
+
+    try:
+        # جلب الرد من نموذج LLaMA
+        response = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "أنت مساعد ذكي ومفيد وتتحدث العربية بطلاقة."},
+                {"role": "user", "content": user_question}
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.7,
+        )
+        ai_answer = response.choices[0].message.content
+
+        # حفظ السؤال والجواب والوقت في قاعدة بيانات Firebase
+        chat_document = {
+            "question": user_question,
+            "answer": ai_answer,
+            "timestamp": firestore.SERVER_TIMESTAMP # يستخدم توقيت جوجل الدقيق
+        }
+        db.collection("chats").add(chat_document)
+
+        return jsonify({"answer": ai_answer})
+    
+    except Exception as e:
+        app.logger.error(f"Error: {str(e)}")
+        return jsonify({"error": "حدث خطأ داخلي في الخادم."}), 500
+
+# مسار السجل: يجلب آخر 15 محادثة لعرضها في الشريط الجانبي
+@app.route('/history', methods=['GET'])
+def get_history():
+    try:
+        # البحث في Firebase وترتيبها من الأحدث للأقدم
+        chats_ref = db.collection("chats").order_by("timestamp", direction=firestore.Query.DESCENDING).limit(15)
+        results = chats_ref.stream()
+
+        chats = []
+        for doc in results:
+            data = doc.to_dict()
+            chats.append({
+                "question": data.get("question", ""),
+                "answer": data.get("answer", "")
+            })
+        
+        # عكس الترتيب لتظهر بالترتيب الصحيح في واجهة الموقع
+        chats.reverse()
+
+        return jsonify({"history": chats})
+    except Exception as e:
+        app.logger.error(f"Firebase Error: {str(e)}")
+        return jsonify({"error": "تعذر جلب السجل"}), 500
+
+# تشغيل السيرفر
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)), debug=False)

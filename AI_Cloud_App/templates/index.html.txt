@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المساعد الذكي السحابي</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #ece5dd; margin: 0; padding: 0; height: 100vh; display: flex; }
+        .app-container { display: flex; width: 100%; height: 100vh; }
+        /* تصميم الشريط الجانبي */
+        .sidebar { width: 300px; background: #202c33; color: #e9edef; display: flex; flex-direction: column; border-left: 1px solid #2a3942; }
+        .sidebar-header { padding: 20px; background: #111b21; font-size: 18px; font-weight: bold; text-align: center; border-bottom: 1px solid #2a3942; }
+        .history-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .history-item { background: #2a3942; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: 0.2s; }
+        .history-item:hover { background: #3a4b55; }
+        /* تصميم المحادثة */
+        .chat-container { flex: 1; display: flex; flex-direction: column; background: #efeae2; }
+        .header { background: #008069; color: white; padding: 15px; text-align: center; font-size: 20px; font-weight: bold; }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .message { max-width: 80%; padding: 12px 16px; border-radius: 10px; line-height: 1.6; font-size: 15px; }
+        .user-msg { background: #d9fdd3; align-self: flex-start; border-top-right-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .ai-msg { background: white; align-self: flex-end; border-top-left-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .input-area { display: flex; padding: 15px; background: #f0f2f5; }
+        input { flex: 1; padding: 15px; border: none; border-radius: 8px; outline: none; font-size: 16px; }
+        button { padding: 10px 25px; margin-right: 10px; background: #008069; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .loading { font-style: italic; color: #888; font-size: 13px; align-self: flex-end; display: none; margin-bottom: 10px;}
+        @media (max-width: 768px) { .sidebar { display: none; } }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="sidebar">
+        <div class="sidebar-header">🕒 سجل المحادثات (Firebase)</div>
+        <div class="history-list" id="historyList">
+            <div style="text-align:center; margin-top:20px; color:#8696a0;">جاري تحميل السجل...</div>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="header">🤖 المساعد الذكي السحابي</div>
+        <div class="chat-box" id="chatBox">
+            <div class="message ai-msg">مرحباً! أنا المساعد الذكي. كيف يمكنني مساعدتك اليوم؟</div>
+        </div>
+        <div class="loading" id="loadingText">جاري التفكير...</div>
+        <div class="input-area">
+            <input type="text" id="questionInput" placeholder="اكتب سؤالك هنا..." onkeypress="handleKeyPress(event)">
+            <button id="sendBtn" onclick="askAI()">إرسال</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const chatBox = document.getElementById('chatBox');
+    const inputField = document.getElementById('questionInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const loadingText = document.getElementById('loadingText');
+    const historyList = document.getElementById('historyList');
+
+    function appendMessage(text, sender) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message ' + (sender === 'user' ? 'user-msg' : 'ai-msg');
+        msgDiv.innerHTML = text.replace(/\n/g, '<br>');
+        chatBox.appendChild(msgDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function fetchHistory() {
+        try {
+            const res = await fetch('/history');
+            const data = await res.json();
+            historyList.innerHTML = '';
+            
+            if (data.history && data.history.length > 0) {
+                data.history.reverse().forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'history-item';
+                    div.innerText = item.question;
+                    div.onclick = () => {
+                        chatBox.innerHTML = '<div class="message ai-msg">مرحباً! كيف يمكنني مساعدتك اليوم؟</div>';
+                        appendMessage(item.question, 'user');
+                        appendMessage(item.answer, 'ai');
+                    };
+                    historyList.appendChild(div);
+                });
+            } else {
+                historyList.innerHTML = '<div style="text-align:center; color:#8696a0; margin-top:20px;">لا يوجد محادثات سابقة</div>';
+            }
+        } catch (err) {
+            historyList.innerHTML = '<div style="text-align:center; color:#ff6b6b; margin-top:20px;">❌ خطأ في الاتصال بقاعدة البيانات</div>';
+        }
+    }
+
+    async function askAI() {
+        const question = inputField.value.trim();
+        if (!question) return;
+
+        appendMessage(question, 'user');
+        inputField.value = '';
+        sendBtn.disabled = true;
+        loadingText.style.display = 'block';
+
+        try {
+            const res = await fetch('/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: question })
+            });
+
+            const data = await res.json();
+
+            if (data.answer) {
+                appendMessage(data.answer, 'ai');
+                fetchHistory(); // تحديث الشريط الجانبي فوراً
+            } else {
+                appendMessage("❌ حدث خطأ: " + data.error, 'ai');
+            }
+        } catch (err) {
+            appendMessage("❌ حدث خطأ في الاتصال.", 'ai');
+        } finally {
+            sendBtn.disabled = false;
+            loadingText.style.display = 'none';
+            inputField.focus();
+        }
+    }
+
+    function handleKeyPress(e) { if (e.key === 'Enter') askAI(); }
+    
+    // تحميل السجل فور فتح الموقع
+    window.onload = fetchHistory;
+</script>
+</body>
+</html>
