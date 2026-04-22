@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المساعد الذكي الاحترافي</title>
+    <title> AI Chat </title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #ece5dd; margin: 0; padding: 0; height: 100vh; display: flex; }
         .app-container { display: flex; width: 100%; height: 100vh; }
@@ -11,7 +11,6 @@
         .sidebar { width: 300px; background: #202c33; color: #e9edef; display: flex; flex-direction: column; border-left: 1px solid #2a3942; }
         .sidebar-header { padding: 20px; background: #111b21; font-size: 18px; font-weight: bold; text-align: center; border-bottom: 1px solid #2a3942; }
         
-        /* زر محادثة جديدة */
         .new-chat-btn { display: block; width: 100%; padding: 12px; margin-top: 15px; background: #00a884; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
         .new-chat-btn:hover { background: #008f6f; }
 
@@ -25,9 +24,35 @@
         .message { max-width: 80%; padding: 12px 16px; border-radius: 10px; line-height: 1.6; font-size: 15px; }
         .user-msg { background: #d9fdd3; align-self: flex-start; border-top-right-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
         .ai-msg { background: white; align-self: flex-end; border-top-left-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
-        .input-area { display: flex; padding: 15px; background: #f0f2f5; }
-        input { flex: 1; padding: 15px; border: none; border-radius: 8px; outline: none; font-size: 16px; }
-        button { padding: 10px 25px; margin-right: 10px; background: #008069; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        
+        /* التعديلات الجديدة على مربع الإدخال */
+        .input-area { display: flex; padding: 15px; background: #f0f2f5; align-items: flex-end; }
+        textarea { 
+            flex: 1; 
+            padding: 12px 15px; 
+            border: none; 
+            border-radius: 8px; 
+            outline: none; 
+            font-size: 16px; 
+            font-family: inherit;
+            resize: none; /* منع تغيير الحجم يدوياً */
+            overflow-y: auto; 
+            min-height: 24px;
+            max-height: 150px; /* أقصى ارتفاع قبل ظهور شريط التمرير */
+            line-height: 1.5;
+        }
+        button { 
+            height: 48px; /* تثبيت ارتفاع الزر */
+            padding: 10px 25px; 
+            margin-right: 10px; 
+            background: #008069; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 16px; 
+        }
         button:disabled { background: #ccc; cursor: not-allowed; }
         .loading { font-style: italic; color: #888; font-size: 13px; align-self: flex-end; display: none; margin-bottom: 10px;}
         
@@ -48,20 +73,21 @@
     </div>
 
     <div class="chat-container">
-        <div class="header">🤖 المساعد الذكي (بذاكرة)</div>
+        <div class="header">🤖 AI Chat</div>
         <div class="chat-box" id="chatBox">
-            <div class="message ai-msg">مرحباً! أنا المساعد الذكي. كيف يمكنني مساعدتك اليوم؟</div>
+            <div class="message ai-msg">السلام عليكم! أنا المساعد الذكي. كيف يمكنني مساعدتك اليوم؟</div>
         </div>
         <div class="loading" id="loadingText">جاري التفكير...</div>
         <div class="input-area">
-            <input type="text" id="questionInput" placeholder="اكتب سؤالك هنا..." onkeypress="handleKeyPress(event)">
+            <!-- تم تغيير input إلى textarea وتعديل خصائصه -->
+            <textarea id="questionInput" rows="1" placeholder="اكتب سؤالك هنا... (Shift + Enter لسطر جديد)" onkeydown="handleKeyPress(event)" oninput="autoResize(this)"></textarea>
             <button id="sendBtn" onclick="askAI()">إرسال</button>
         </div>
     </div>
 </div>
 
 <script>
-    let currentChatId = null; // ذاكرة الواجهة لمعرفة المحادثة المفتوحة حالياً
+    let currentChatId = null;
 
     const chatBox = document.getElementById('chatBox');
     const inputField = document.getElementById('questionInput');
@@ -69,7 +95,6 @@
     const loadingText = document.getElementById('loadingText');
     const historyList = document.getElementById('historyList');
 
-    // 1. دالة إضافة رسالة للشاشة
     function appendMessage(text, sender) {
         const msgDiv = document.createElement('div');
         msgDiv.className = 'message ' + (sender === 'user' ? 'user-msg' : 'ai-msg');
@@ -78,13 +103,11 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // 2. دالة بدء محادثة جديدة (تصفير كل شيء)
     function startNewChat() {
         currentChatId = null;
         chatBox.innerHTML = '<div class="message ai-msg">مرحباً! أنا المساعد الذكي. كيف يمكنني مساعدتك اليوم؟</div>';
     }
 
-    // 3. جلب قائمة المحادثات من السحابة
     async function fetchHistory() {
         try {
             const res = await fetch('/history');
@@ -96,8 +119,6 @@
                     const div = document.createElement('div');
                     div.className = 'history-item';
                     div.innerText = item.title;
-                    
-                    // عند النقر، نقوم بتحميل المحادثة بالكامل
                     div.onclick = () => loadFullChat(item.chat_id);
                     historyList.appendChild(div);
                 });
@@ -109,14 +130,13 @@
         }
     }
 
-    // 4. جلب وعرض محادثة سابقة بالكامل
     async function loadFullChat(chatId) {
-        currentChatId = chatId; // تحديث الـ ID
+        currentChatId = chatId;
         chatBox.innerHTML = '<div style="text-align:center; color:#888;">جاري تحميل المحادثة...</div>';
         try {
             const res = await fetch('/chat/' + chatId);
             const data = await res.json();
-            chatBox.innerHTML = ''; // تنظيف الشاشة
+            chatBox.innerHTML = '';
 
             if (data.messages) {
                 data.messages.forEach(msg => {
@@ -128,13 +148,16 @@
         }
     }
 
-    // 5. إرسال سؤال جديد (مع إرفاق الـ ID ليتذكر السياق)
     async function askAI() {
         const question = inputField.value.trim();
         if (!question) return;
 
         appendMessage(question, 'user');
+        
+        // تفريغ مربع النص وإعادته لحجمه الطبيعي بعد الإرسال
         inputField.value = '';
+        inputField.style.height = 'auto';
+        
         sendBtn.disabled = true;
         loadingText.style.display = 'block';
 
@@ -144,16 +167,16 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     question: question,
-                    chat_id: currentChatId // إرسال رقم المحادثة للباك-إند
+                    chat_id: currentChatId
                 })
             });
 
             const data = await res.json();
 
             if (data.answer) {
-                currentChatId = data.chat_id; // تحديث الواجهة برقم المحادثة
+                currentChatId = data.chat_id;
                 appendMessage(data.answer, 'ai');
-                fetchHistory(); // تحديث الشريط الجانبي
+                fetchHistory();
             } else {
                 appendMessage("❌ حدث خطأ: " + data.error, 'ai');
             }
@@ -166,9 +189,22 @@
         }
     }
 
-    function handleKeyPress(e) { if (e.key === 'Enter') askAI(); }
+    // دالة للتحكم في لوحة المفاتيح
+    function handleKeyPress(e) { 
+        // إذا ضغط المستخدم على Enter بدون زر Shift، قم بالإرسال
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault(); // منع إنشاء سطر جديد فارغ بعد الإرسال
+            askAI();
+        }
+        // إذا ضغط Shift + Enter سيقوم المتصفح بإنشاء سطر جديد تلقائياً
+    }
+
+    // دالة لتكبير المربع تلقائياً عند كتابة سطور كثيرة
+    function autoResize(textarea) {
+        textarea.style.height = 'auto'; // إعادة تعيين الارتفاع
+        textarea.style.height = textarea.scrollHeight + 'px'; // ضبط الارتفاع ليتناسب مع المحتوى
+    }
     
-    // تحميل السجل فوراً عند فتح الموقع
     window.onload = fetchHistory;
 </script>
 </body>
