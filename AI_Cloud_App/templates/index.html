@@ -25,7 +25,6 @@
         .user-msg { background: #d9fdd3; align-self: flex-start; border-top-right-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
         .ai-msg { background: white; align-self: flex-end; border-top-left-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
         
-        /* التعديلات الجديدة على مربع الإدخال */
         .input-area { display: flex; padding: 15px; background: #f0f2f5; align-items: flex-end; }
         textarea { 
             flex: 1; 
@@ -35,14 +34,14 @@
             outline: none; 
             font-size: 16px; 
             font-family: inherit;
-            resize: none; /* منع تغيير الحجم يدوياً */
+            resize: none; 
             overflow-y: auto; 
             min-height: 24px;
-            max-height: 150px; /* أقصى ارتفاع قبل ظهور شريط التمرير */
+            max-height: 150px;
             line-height: 1.5;
         }
         button { 
-            height: 48px; /* تثبيت ارتفاع الزر */
+            height: 48px; 
             padding: 10px 25px; 
             margin-right: 10px; 
             background: #008069; 
@@ -79,7 +78,6 @@
         </div>
         <div class="loading" id="loadingText">جاري التفكير...</div>
         <div class="input-area">
-            <!-- تم تغيير input إلى textarea وتعديل خصائصه -->
             <textarea id="questionInput" rows="1" placeholder="اكتب سؤالك هنا... (Shift + Enter لسطر جديد)" onkeydown="handleKeyPress(event)" oninput="autoResize(this)"></textarea>
             <button id="sendBtn" onclick="askAI()">إرسال</button>
         </div>
