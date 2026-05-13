@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import datetime
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from groq import Groq
@@ -15,9 +16,7 @@ CORS(app)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 client = Groq(api_key=GROQ_API_KEY)
 
-# ==========================================
-# الاتصال بقاعدة بيانات Firebase
-# ==========================================
+# الاتصال بـ Firebase
 try:
     firebase_cred_json = os.getenv("FIREBASE_CREDENTIALS")
     if firebase_cred_json:
@@ -26,25 +25,21 @@ try:
         firebase_admin.initialize_app(cred)
         db = firestore.client()
         print("✅ تم الاتصال بـ Firebase بنجاح")
-    else:
-        print("⚠️ تحذير: مفاتيح Firebase غير موجودة.")
 except Exception as e:
     print(f"❌ خطأ في الاتصال بـ Firebase: {e}")
-
-# ==========================================
-# المسارات الأساسية
-# ==========================================
 
 @app.route('/', methods=['GET'])
 def home():
     return render_template('index.html')
 
-# 1. مسار المحادثة
 @app.route('/ask', methods=['POST'])
 def ask_ai():
     data = request.json
     user_question = data.get("question", "").strip()
+    uid = data.get("uid") # رقم المستخدم السري القادم من الواجهة
+
     if not user_question: return jsonify({"error": "الرجاء كتابة سؤال"}), 400
+    if not uid: return jsonify({"error": "غير مصرح لك. يرجى تسجيل الدخول."}), 401
 
     try:
         response = client.chat.completions.create(
@@ -57,7 +52,9 @@ def ask_ai():
         )
         ai_answer = response.choices[0].message.content
 
+        # حفظ المحادثة مع رقم الـ UID الخاص بالمستخدم
         chat_document = {
+            "uid": uid,
             "question": user_question,
             "answer": ai_answer,
             "timestamp": firestore.SERVER_TIMESTAMP 
@@ -68,43 +65,45 @@ def ask_ai():
     except Exception as e:
         return jsonify({"error": "حدث خطأ داخلي."}), 500
 
-# 2. مسار جلب السجل
 @app.route('/history', methods=['GET'])
 def get_history():
+    uid = request.args.get('uid')
+    if not uid: return jsonify({"history":[]})
+
     try:
-        chats_ref = db.collection("chats").order_by("timestamp", direction=firestore.Query.DESCENDING).limit(15)
-        chats = [{"question": doc.to_dict().get("question", ""), "answer": doc.to_dict().get("answer", "")} for doc in chats_ref.stream()]
-        chats.reverse()
-        return jsonify({"history": chats})
+        # جلب المحادثات الخاصة بهذا المستخدم فقط
+        chats_ref = db.collection("chats").where("uid", "==", uid).stream()
+        
+        chats =[]
+        for doc in chats_ref:
+            d = doc.to_dict()
+            # ترتيب زمني
+            d['time_val'] = d['timestamp'].timestamp() if d.get('timestamp') else datetime.now().timestamp()
+            chats.append(d)
+            
+        # ترتيب المحادثات من الأقدم للأحدث (حسب الوقت)
+        chats.sort(key=lambda x: x['time_val'])
+        
+        # أخذ آخر 15 محادثة وعرضها
+        formatted_chats = [{"question": c.get("question", ""), "answer": c.get("answer", "")} for c[-15:] in [chats] for c in chats[-15:]]
+        
+        return jsonify({"history": formatted_chats})
     except Exception as e:
+        print(e)
         return jsonify({"error": "تعذر جلب السجل"}), 500
 
-# ==========================================
-# الميزة الجديدة: مسار تتبع الزوار (Analytics)
-# ==========================================
 @app.route('/track', methods=['POST'])
 def track_visitor():
     try:
-        # جلب عنوان IP (يعمل حتى لو كان التطبيق على Render)
-        if request.headers.getlist("X-Forwarded-For"):
-            ip = request.headers.getlist("X-Forwarded-For")[0]
-        else:
-            ip = request.remote_addr
-
-        # جلب بيانات المتصفح ونظام التشغيل
-        user_agent = request.headers.get('User-Agent')
-
-        # حفظ بيانات الزائر في Firebase في جدول "visitors"
-        visitor_data = {
+        ip = request.headers.getlist("X-Forwarded-For")[0] if request.headers.getlist("X-Forwarded-For") else request.remote_addr
+        db.collection("visitors").add({
             "ip_address": ip,
-            "device_info": user_agent,
+            "device_info": request.headers.get('User-Agent'),
             "visited_at": firestore.SERVER_TIMESTAMP
-        }
-        db.collection("visitors").add(visitor_data)
-        
+        })
         return jsonify({"status": "tracked"})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except:
+        return jsonify({"error": "error"}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)), debug=False)
