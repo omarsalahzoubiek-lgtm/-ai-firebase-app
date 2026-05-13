@@ -1,6 +1,5 @@
 import os
 import json
-import uuid  # مكتبة لإنشاء ID فريد لكل محادثة
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from groq import Groq
@@ -27,105 +26,85 @@ try:
         firebase_admin.initialize_app(cred)
         db = firestore.client()
         print("✅ تم الاتصال بـ Firebase بنجاح")
+    else:
+        print("⚠️ تحذير: مفاتيح Firebase غير موجودة.")
 except Exception as e:
     print(f"❌ خطأ في الاتصال بـ Firebase: {e}")
 
 # ==========================================
-# مسارات الموقع (Routes)
+# المسارات الأساسية
 # ==========================================
 
 @app.route('/', methods=['GET'])
 def home():
     return render_template('index.html')
 
-# 1. مسار التحدث (بذاكرة)
+# 1. مسار المحادثة
 @app.route('/ask', methods=['POST'])
 def ask_ai():
     data = request.json
     user_question = data.get("question", "").strip()
-    chat_id = data.get("chat_id")  # جلب رقم المحادثة الحالية (إن وجد)
-
-    if not user_question:
-        return jsonify({"error": "الرجاء كتابة سؤال"}), 400
+    if not user_question: return jsonify({"error": "الرجاء كتابة سؤال"}), 400
 
     try:
-        # الإعداد الافتراضي للرسائل
-        messages =[{"role": "system", "content": "أنت مساعد ذكي ومفيد وتتحدث العربية بطلاقة. تذكر سياق المحادثة السابقة وأجب بناءً عليه."}]
-        title = user_question[:40] # عنوان المحادثة هو أول 40 حرف من أول سؤال
-
-        # إذا كانت المحادثة موجودة مسبقاً، نجلب رسائلها من Firebase ليتذكرها الذكاء الاصطناعي
-        if chat_id:
-            chat_ref = db.collection("chat_sessions").document(chat_id)
-            chat_doc = chat_ref.get()
-            if chat_doc.exists:
-                chat_data = chat_doc.to_dict()
-                for msg in chat_data.get("messages",[]):
-                    messages.append(msg)
-                title = chat_data.get("title", title)
-        else:
-            # إذا لم تكن موجودة، ننشئ رقم ID جديد للمحادثة
-            chat_id = str(uuid.uuid4())
-
-        # إضافة السؤال الجديد للقائمة
-        messages.append({"role": "user", "content": user_question})
-
-        # إرسال كل المحادثة إلى LLaMA
         response = client.chat.completions.create(
-            messages=messages,
+            messages=[
+                {"role": "system", "content": "أنت مساعد ذكي ومفيد وتتحدث العربية بطلاقة."},
+                {"role": "user", "content": user_question}
+            ],
             model="llama-3.3-70b-versatile",
             temperature=0.7,
         )
         ai_answer = response.choices[0].message.content
 
-        # إضافة رد الذكاء الاصطناعي للقائمة
-        messages.append({"role": "assistant", "content": ai_answer})
+        chat_document = {
+            "question": user_question,
+            "answer": ai_answer,
+            "timestamp": firestore.SERVER_TIMESTAMP 
+        }
+        db.collection("chats").add(chat_document)
 
-        # حفظ أو تحديث المحادثة في Firebase (بدون دور الـ system لتقليل المساحة)
-        db_messages = [m for m in messages if m["role"] != "system"]
-        db.collection("chat_sessions").document(chat_id).set({
-            "chat_id": chat_id,
-            "title": title,
-            "messages": db_messages,
-            "updated_at": firestore.SERVER_TIMESTAMP
-        })
-
-        # نرد على الواجهة بالإجابة + رقم المحادثة لكي تتذكره في السؤال القادم
-        return jsonify({"answer": ai_answer, "chat_id": chat_id})
-    
+        return jsonify({"answer": ai_answer})
     except Exception as e:
-        app.logger.error(f"Error: {str(e)}")
-        return jsonify({"error": "حدث خطأ داخلي في الخادم."}), 500
+        return jsonify({"error": "حدث خطأ داخلي."}), 500
 
-# 2. مسار جلب قائمة المحادثات (للشريط الجانبي)
+# 2. مسار جلب السجل
 @app.route('/history', methods=['GET'])
 def get_history():
     try:
-        # جلب آخر 20 محادثة مرتبة من الأحدث للأقدم
-        chats_ref = db.collection("chat_sessions").order_by("updated_at", direction=firestore.Query.DESCENDING).limit(20)
-        results = chats_ref.stream()
-
-        chats =[]
-        for doc in results:
-            data = doc.to_dict()
-            chats.append({
-                "chat_id": data.get("chat_id"),
-                "title": data.get("title", "محادثة بدون عنوان")
-            })
-
+        chats_ref = db.collection("chats").order_by("timestamp", direction=firestore.Query.DESCENDING).limit(15)
+        chats = [{"question": doc.to_dict().get("question", ""), "answer": doc.to_dict().get("answer", "")} for doc in chats_ref.stream()]
+        chats.reverse()
         return jsonify({"history": chats})
     except Exception as e:
         return jsonify({"error": "تعذر جلب السجل"}), 500
 
-# 3. مسار جلب محتوى محادثة سابقة كاملة
-@app.route('/chat/<chat_id>', methods=['GET'])
-def get_chat(chat_id):
+# ==========================================
+# الميزة الجديدة: مسار تتبع الزوار (Analytics)
+# ==========================================
+@app.route('/track', methods=['POST'])
+def track_visitor():
     try:
-        chat_doc = db.collection("chat_sessions").document(chat_id).get()
-        if chat_doc.exists:
-            return jsonify(chat_doc.to_dict())
-        return jsonify({"error": "المحادثة غير موجودة"}), 404
+        # جلب عنوان IP (يعمل حتى لو كان التطبيق على Render)
+        if request.headers.getlist("X-Forwarded-For"):
+            ip = request.headers.getlist("X-Forwarded-For")[0]
+        else:
+            ip = request.remote_addr
+
+        # جلب بيانات المتصفح ونظام التشغيل
+        user_agent = request.headers.get('User-Agent')
+
+        # حفظ بيانات الزائر في Firebase في جدول "visitors"
+        visitor_data = {
+            "ip_address": ip,
+            "device_info": user_agent,
+            "visited_at": firestore.SERVER_TIMESTAMP
+        }
+        db.collection("visitors").add(visitor_data)
+        
+        return jsonify({"status": "tracked"})
     except Exception as e:
-        return jsonify({"error": "تعذر جلب المحادثة"}), 500
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)), debug=False)
