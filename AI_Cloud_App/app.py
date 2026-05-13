@@ -16,7 +16,6 @@ CORS(app)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 client = Groq(api_key=GROQ_API_KEY)
 
-# الاتصال بـ Firebase
 try:
     firebase_cred_json = os.getenv("FIREBASE_CREDENTIALS")
     if firebase_cred_json:
@@ -36,34 +35,54 @@ def home():
 def ask_ai():
     data = request.json
     user_question = data.get("question", "").strip()
-    uid = data.get("uid") # رقم المستخدم السري القادم من الواجهة
+    image_url = data.get("image_url", "") # استلام رابط الصورة من الواجهة
+    uid = data.get("uid")
 
-    if not user_question: return jsonify({"error": "الرجاء كتابة سؤال"}), 400
-    if not uid: return jsonify({"error": "غير مصرح لك. يرجى تسجيل الدخول."}), 401
+    if not user_question and not image_url: 
+        return jsonify({"error": "الرجاء كتابة سؤال أو رفع صورة"}), 400
+    if not uid: 
+        return jsonify({"error": "غير مصرح لك. يرجى تسجيل الدخول."}), 401
+
+    # تجهيز رسالة النظام بناءً على وجود صورة أم لا
+    messages = [{"role": "system", "content": "أنت مساعد ذكي ومفيد وتتحدث العربية بطلاقة."}]
+    
+    if image_url:
+        # إذا كان هناك صورة، نستخدم صيغة نموذج الرؤية (Vision)
+        messages.append({
+            "role": "user",
+            "content": [
+                {"type": "text", "text": user_question if user_question else "اشرح ما في هذه الصورة بالتفصيل."},
+                {"type": "image_url", "image_url": {"url": image_url}}
+            ]
+        })
+        model_name = "llama-3.2-90b-vision-preview" # نموذج الرؤية
+    else:
+        # نص فقط
+        messages.append({"role": "user", "content": user_question})
+        model_name = "llama-3.3-70b-versatile" # نموذج النص
 
     try:
         response = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": "أنت مساعد ذكي ومفيد وتتحدث العربية بطلاقة."},
-                {"role": "user", "content": user_question}
-            ],
-            model="llama-3.3-70b-versatile",
+            messages=messages,
+            model=model_name,
             temperature=0.7,
         )
         ai_answer = response.choices[0].message.content
 
-        # حفظ المحادثة مع رقم الـ UID الخاص بالمستخدم
+        # حفظ المحادثة (مع رابط الصورة إن وجد)
         chat_document = {
             "uid": uid,
             "question": user_question,
             "answer": ai_answer,
+            "image_url": image_url,
             "timestamp": firestore.SERVER_TIMESTAMP 
         }
         db.collection("chats").add(chat_document)
 
         return jsonify({"answer": ai_answer})
     except Exception as e:
-        return jsonify({"error": "حدث خطأ داخلي."}), 500
+        print(e)
+        return jsonify({"error": "حدث خطأ داخلي في معالجة الذكاء الاصطناعي."}), 500
 
 @app.route('/history', methods=['GET'])
 def get_history():
@@ -71,25 +90,20 @@ def get_history():
     if not uid: return jsonify({"history":[]})
 
     try:
-        # جلب المحادثات الخاصة بهذا المستخدم فقط
         chats_ref = db.collection("chats").where("uid", "==", uid).stream()
-        
         chats =[]
         for doc in chats_ref:
             d = doc.to_dict()
-            # ترتيب زمني
             d['time_val'] = d['timestamp'].timestamp() if d.get('timestamp') else datetime.now().timestamp()
             chats.append(d)
             
-        # ترتيب المحادثات من الأقدم للأحدث (حسب الوقت)
         chats.sort(key=lambda x: x['time_val'])
         
-        # أخذ آخر 15 محادثة وعرضها
-        formatted_chats = [{"question": c.get("question", ""), "answer": c.get("answer", "")} for c[-15:] in [chats] for c in chats[-15:]]
+        # تضمين رابط الصورة في السجل
+        formatted_chats = [{"question": c.get("question", ""), "answer": c.get("answer", ""), "image_url": c.get("image_url", "")} for c in chats[-15:]]
         
         return jsonify({"history": formatted_chats})
     except Exception as e:
-        print(e)
         return jsonify({"error": "تعذر جلب السجل"}), 500
 
 @app.route('/track', methods=['POST'])
