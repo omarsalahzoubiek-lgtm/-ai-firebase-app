@@ -3,62 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#023e8a">
-    <title>المساعد الذكي السحابي | تسجيل الدخول</title>
+    <meta name="theme-color" content="#274c77">
+    <title>المساعد الذكي السحابي | SaaS</title>
     <style>
+        /* اللوحة اللونية الجديدة */
         :root {
-            --color-1: #03045e; --color-2: #023e8a; --color-3: #0077b6; --color-4: #0096c7;
-            --color-5: #00b4d8; --color-6: #48cae4; --color-7: #90e0ef; --color-8: #ade8f4; --color-9: #caf0f8;
+            --bg-light: #e7ecef;     /* رمادي فاتح (خلفية المحادثة) */
+            --primary-dark: #274c77; /* أزرق داكن (الشريط والهيدر) */
+            --primary-med: #6096ba;  /* أزرق متوسط (الأزرار ورسالة المستخدم) */
+            --primary-light: #a3cef1;/* أزرق فاتح (التأثيرات الجمالية) */
+            --gray-accent: #8b8c89;  /* رمادي (النصوص الثانوية والحدود) */
         }
 
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--color-9); margin: 0; padding: 0; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center;}
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-light); margin: 0; padding: 0; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center;}
         
         /* شاشة تسجيل الدخول */
-        .auth-container { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(2, 62, 138, 0.2); text-align: center; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; }
-        .auth-container h2 { color: var(--color-1); margin-top: 0; }
-        .auth-input { padding: 15px; border: 2px solid var(--color-8); border-radius: 10px; font-size: 16px; outline: none; transition: 0.3s; }
-        .auth-input:focus { border-color: var(--color-3); }
-        .btn-primary { background: var(--color-3); color: white; border: none; padding: 15px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-primary:hover { background: var(--color-2); transform: translateY(-2px); }
-        .btn-secondary { background: transparent; color: var(--color-4); border: 2px solid var(--color-4); padding: 15px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-secondary:hover { background: var(--color-9); }
+        .auth-container { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(39, 76, 119, 0.15); text-align: center; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; border-top: 5px solid var(--primary-med);}
+        .auth-container h2 { color: var(--primary-dark); margin-top: 0; }
+        .auth-input { padding: 15px; border: 1px solid var(--gray-accent); border-radius: 8px; font-size: 16px; outline: none; transition: 0.3s; }
+        .auth-input:focus { border-color: var(--primary-med); box-shadow: 0 0 5px var(--primary-light); }
+        .btn-primary { background: var(--primary-med); color: white; border: none; padding: 15px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-secondary { background: transparent; color: var(--primary-dark); border: 2px solid var(--primary-med); padding: 15px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-secondary:hover { background: var(--bg-light); }
         .auth-error { color: #d90429; font-size: 14px; display: none; }
 
-        /* حاوية التطبيق (مخفية في البداية) */
+        /* حاوية التطبيق */
         .app-wrapper { display: none; width: 100%; height: 100vh; flex-direction: row; }
 
-        /* باقي تصميم التطبيق (الشريط والمحادثة) */
-        .sidebar { width: 300px; background: var(--color-1); color: var(--color-9); display: flex; flex-direction: column; border-left: 1px solid var(--color-2); transition: transform 0.3s ease; z-index: 1000; box-shadow: -2px 0 10px rgba(0,0,0,0.1); }
-        .sidebar-header { padding: 20px; background: var(--color-2); font-size: 18px; font-weight: bold; text-align: center; border-bottom: 1px solid var(--color-3); letter-spacing: 1px;}
+        /* الشريط الجانبي */
+        .sidebar { width: 300px; background: var(--primary-dark); color: white; display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 1000; box-shadow: -2px 0 10px rgba(0,0,0,0.1); }
+        .sidebar-header { padding: 20px; background: rgba(0,0,0,0.2); font-size: 18px; font-weight: bold; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .history-list { flex: 1; overflow-y: auto; padding: 15px 10px; }
-        .history-item { background: var(--color-3); padding: 12px 15px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all 0.3s ease; border: 1px solid transparent;}
-        .history-item:hover { background: var(--color-4); border-color: var(--color-6); transform: translateX(-5px); }
+        .history-item { background: rgba(255,255,255,0.1); padding: 12px 15px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: 0.3s; border-right: 3px solid transparent;}
+        .history-item:hover { background: rgba(255,255,255,0.2); border-color: var(--primary-light); }
         
-        .chat-container { flex: 1; display: flex; flex-direction: column; background: var(--color-9); position: relative; }
-        .header { background: var(--color-2); color: white; padding: 18px; text-align: center; font-size: 20px; font-weight: bold; display: flex; justify-content: center; align-items: center; position: relative; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10;}
-        .menu-btn { display: none; position: absolute; right: 15px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-        .logout-btn { position: absolute; left: 15px; background: #d90429; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.3s; }
-        .logout-btn:hover { background: #9b2226; }
+        .chat-container { flex: 1; display: flex; flex-direction: column; background: var(--bg-light); position: relative; }
+        .header { background: white; color: var(--primary-dark); padding: 18px; text-align: center; font-size: 20px; font-weight: bold; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 10;}
+        .menu-btn { display: none; position: absolute; right: 15px; background: none; border: none; color: var(--primary-dark); font-size: 24px; cursor: pointer; }
+        .logout-btn { position: absolute; left: 15px; background: var(--gray-accent); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: 0.3s; }
+        .logout-btn:hover { background: #6b6c69; }
 
-        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background-image: radial-gradient(var(--color-8) 1px, transparent 1px); background-size: 20px 20px; }
-        .message { max-width: 85%; padding: 14px 18px; border-radius: 15px; line-height: 1.6; font-size: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .user-msg { background: var(--color-4); color: white; align-self: flex-start; border-top-right-radius: 0; }
-        .ai-msg { background: white; color: var(--color-1); align-self: flex-end; border-top-left-radius: 0; border: 1px solid var(--color-8); }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .message { max-width: 80%; padding: 14px 18px; border-radius: 12px; line-height: 1.6; font-size: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .user-msg { background: var(--primary-med); color: white; align-self: flex-start; border-top-right-radius: 0; }
+        .ai-msg { background: white; color: #333; align-self: flex-end; border-top-left-radius: 0; border: 1px solid #ddd; }
         
-        .input-area { display: flex; padding: 20px; background: white; gap: 10px; border-top: 1px solid var(--color-8); box-shadow: 0 -2px 10px rgba(0,0,0,0.02);}
-        input.chat-input { flex: 1; padding: 15px 20px; border: 2px solid var(--color-8); border-radius: 25px; outline: none; font-size: 16px; transition: 0.3s; background: var(--color-9); color: var(--color-1);}
-        input.chat-input:focus { border-color: var(--color-4); background: white; box-shadow: 0 0 8px rgba(0, 150, 199, 0.2); }
+        /* الصور داخل المحادثة */
+        .chat-image { max-width: 250px; border-radius: 8px; margin-bottom: 10px; display: block; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);}
+
+        .input-area { display: flex; padding: 20px; background: white; gap: 10px; border-top: 1px solid #ddd; align-items: center; position: relative;}
         
-        button.chat-btn { padding: 12px 30px; background: var(--color-3); color: white; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 16px; transition: all 0.3s; }
-        button.chat-btn:hover { background: var(--color-2); transform: translateY(-2px); }
-        button.chat-btn:disabled { background: var(--color-8); cursor: not-allowed; }
-        .loading { font-style: italic; color: var(--color-3); font-size: 13px; align-self: flex-end; display: none; margin-bottom: 10px; padding-left: 20px;}
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(3, 4, 94, 0.6); z-index: 999; backdrop-filter: blur(3px); }
+        /* معاينة الصورة المرفوعة */
+        #imagePreviewContainer { display: none; position: absolute; top: -80px; right: 20px; background: white; padding: 5px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 1px solid var(--primary-light);}
+        #imagePreview { height: 60px; border-radius: 5px; }
+        #removeImageBtn { position: absolute; top: -5px; right: -5px; background: #d90429; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; }
+
+        /* زر الإرفاق */
+        .attach-btn { background: var(--bg-light); color: var(--primary-dark); border: 1px solid var(--gray-accent); border-radius: 50%; width: 45px; height: 45px; font-size: 20px; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center;}
+        .attach-btn:hover { background: var(--primary-light); color: white; border-color: var(--primary-med);}
+
+        input.chat-input { flex: 1; padding: 15px 20px; border: 1px solid var(--gray-accent); border-radius: 25px; outline: none; font-size: 16px; background: var(--bg-light); transition: 0.3s;}
+        input.chat-input:focus { border-color: var(--primary-med); background: white;}
+        
+        button.chat-btn { padding: 12px 25px; background: var(--primary-dark); color: white; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; }
+        button.chat-btn:hover { background: var(--primary-med); }
+        button.chat-btn:disabled { background: var(--gray-accent); cursor: not-allowed; }
+        
+        .loading { font-style: italic; color: var(--gray-accent); font-size: 13px; align-self: flex-end; display: none; margin-bottom: 10px; padding-left: 20px;}
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(39, 76, 119, 0.6); z-index: 999; }
 
         @media (max-width: 768px) { 
             .sidebar { position: fixed; height: 100%; right: 0; transform: translateX(100%); }
             .sidebar.active { transform: translateX(0); }
             .menu-btn { display: block; }
+            .message { max-width: 90%; }
+            .attach-btn { width: 40px; height: 40px; font-size: 18px; }
+            input.chat-input { padding: 12px; font-size: 14px;}
         }
     </style>
 </head>
@@ -66,7 +87,7 @@
 
 <!-- شاشة تسجيل الدخول -->
 <div class="auth-container" id="authScreen">
-    <h2>تسجيل الدخول / إنشاء حساب</h2>
+    <h2>تسجيل الدخول للمنصة</h2>
     <input type="email" id="emailInput" class="auth-input" placeholder="البريد الإلكتروني">
     <input type="password" id="passwordInput" class="auth-input" placeholder="كلمة المرور">
     <div id="authError" class="auth-error">حدث خطأ في التسجيل</div>
@@ -74,107 +95,118 @@
     <button class="btn-secondary" onclick="window.signup()">إنشاء حساب جديد</button>
 </div>
 
-<!-- واجهة التطبيق الرئيسية -->
+<!-- واجهة التطبيق -->
 <div class="app-wrapper" id="appScreen">
     <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">☁️ سجل محادثاتك</div>
+        <div class="sidebar-header">☁️ سجل المحادثات</div>
         <div class="history-list" id="historyList"></div>
     </div>
     <div class="chat-container">
         <div class="header">
-            <button class="logout-btn" onclick="window.logout()">تسجيل خروج</button>
+            <button class="logout-btn" onclick="window.logout()">خروج</button>
             <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-            🤖 المساعد الذكي
+            🤖 المساعد السحابي الذكي
         </div>
         <div class="chat-box" id="chatBox"></div>
-        <div class="loading" id="loadingText">جاري المعالجة السحابية...</div>
+        <div class="loading" id="loadingText">جاري تحليل البيانات...</div>
+        
         <div class="input-area">
-            <input type="text" id="questionInput" class="chat-input" placeholder="اكتب استفسارك هنا..." onkeypress="handleKeyPress(event)">
+            <!-- مساحة معاينة الصورة -->
+            <div id="imagePreviewContainer">
+                <button id="removeImageBtn" onclick="removeImage()">✖</button>
+                <img id="imagePreview" src="" alt="preview">
+            </div>
+
+            <!-- زر اختيار الصورة (مخفي) وزر الإرفاق -->
+            <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="previewImage(event)">
+            <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="إرفاق صورة">📎</button>
+
+            <input type="text" id="questionInput" class="chat-input" placeholder="اكتب سؤالك أو اطلب تحليل الصورة..." onkeypress="handleKeyPress(event)">
             <button id="sendBtn" class="chat-btn" onclick="askAI()">إرسال</button>
         </div>
     </div>
 </div>
 
-<!-- ربط مكتبات Firebase -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } 
-    from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    // استدعاء مكتبة التخزين
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-    // ⚠️ ضع إعدادات مشروعك هنا بدلاً من الكلمات الإنجليزية ⚠️
+    // ⚠️ استبدل هذا الكود ببيانات مشروعك ⚠️
     const firebaseConfig = {
-  apiKey: "AIzaSyCsbaIpgrZY31_u4bC14-beARQLJYI-Qsg",
-  authDomain: "oamrsalah-8787d.firebaseapp.com",
-  projectId: "oamrsalah-8787d",
-  storageBucket: "oamrsalah-8787d.firebasestorage.app",
-  messagingSenderId: "231270748295",
-  appId: "1:231270748295:web:211365a4c099aa98d3a822",
-  measurementId: "G-VC5YE4N1N8"
-};
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const storage = getStorage(app); // تعريف خدمة التخزين
     
-    let currentUID = null; // متغير لحفظ رقم المستخدم
+    let currentUID = null;
+    let selectedImageFile = null; // متغير لحفظ الصورة المختارة
 
-    // دوال المصادقة
-    window.login = () => {
-        const email = document.getElementById('emailInput').value;
-        const pass = document.getElementById('passwordInput').value;
-        signInWithEmailAndPassword(auth, email, pass).catch(err => showError("البريد أو كلمة المرور غير صحيحة"));
-    };
-
-    window.signup = () => {
-        const email = document.getElementById('emailInput').value;
-        const pass = document.getElementById('passwordInput').value;
-        createUserWithEmailAndPassword(auth, email, pass).catch(err => showError("كلمة المرور ضعيفة أو الإيميل مستخدم"));
-    };
-
+    // ... [نفس دوال المصادقة السابقة] ...
+    window.login = () => { signInWithEmailAndPassword(auth, document.getElementById('emailInput').value, document.getElementById('passwordInput').value).catch(err => showError("البيانات غير صحيحة")); };
+    window.signup = () => { createUserWithEmailAndPassword(auth, document.getElementById('emailInput').value, document.getElementById('passwordInput').value).catch(err => showError("خطأ في الإنشاء")); };
     window.logout = () => signOut(auth);
+    function showError(msg) { document.getElementById('authError').innerText = msg; document.getElementById('authError').style.display = 'block'; }
 
-    function showError(msg) {
-        const errDiv = document.getElementById('authError');
-        errDiv.innerText = msg;
-        errDiv.style.display = 'block';
-    }
-
-    // مراقبة حالة المستخدم (تسجيل دخول أو خروج)
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            currentUID = user.uid; // حفظ الرقم السري للمستخدم
+            currentUID = user.uid;
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('appScreen').style.display = 'flex';
             document.body.style.justifyContent = 'flex-start';
-            document.getElementById('chatBox').innerHTML = '<div class="message ai-msg">السلام عليكم! أنا المساعد الذكي. كيف يمكنني مساعدتك اليوم؟ </div>';
-            fetchHistory(); // جلب محادثات هذا المستخدم فقط
-            trackVisitor();
+            document.getElementById('chatBox').innerHTML = '<div class="message ai-msg">مرحباً! يمكنني الآن رؤية الصور. ارفع صورة وسأقوم بتحليلها لك! 📷</div>';
+            fetchHistory();
         } else {
             currentUID = null;
             document.getElementById('authScreen').style.display = 'flex';
             document.getElementById('appScreen').style.display = 'none';
             document.body.style.justifyContent = 'center';
-            document.getElementById('emailInput').value = '';
-            document.getElementById('passwordInput').value = '';
         }
     });
 
-    // ===================================
-    // دوال المحادثة
-    // ===================================
     window.toggleSidebar = () => {
         document.getElementById('sidebar').classList.toggle('active');
         document.getElementById('overlay').style.display = document.getElementById('sidebar').classList.contains('active') ? 'block' : 'none';
     }
 
-    async function trackVisitor() {
-        try { await fetch('/track', { method: 'POST' }); } catch(e) {} 
-    }
+    // دوال التعامل مع الصور في الواجهة
+    window.previewImage = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            selectedImageFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('imagePreviewContainer').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
-    function appendMessage(text, sender) {
+    window.removeImage = () => {
+        selectedImageFile = null;
+        document.getElementById('fileInput').value = "";
+        document.getElementById('imagePreviewContainer').style.display = 'none';
+    };
+
+    function appendMessage(text, sender, imageUrl = null) {
         const msgDiv = document.createElement('div');
         msgDiv.className = 'message ' + (sender === 'user' ? 'user-msg' : 'ai-msg');
-        msgDiv.innerHTML = text.replace(/\n/g, '<br>');
+        
+        let content = "";
+        if (imageUrl) content += `<img src="${imageUrl}" class="chat-image"><br>`;
+        content += text.replace(/\n/g, '<br>');
+        
+        msgDiv.innerHTML = content;
         document.getElementById('chatBox').appendChild(msgDiv);
         document.getElementById('chatBox').scrollTop = document.getElementById('chatBox').scrollHeight;
     }
@@ -182,7 +214,7 @@
     window.fetchHistory = async () => {
         if (!currentUID) return;
         try {
-            const res = await fetch(`/history?uid=${currentUID}`); // نرسل الـ UID للخادم
+            const res = await fetch(`/history?uid=${currentUID}`);
             const data = await res.json();
             const historyList = document.getElementById('historyList');
             historyList.innerHTML = '';
@@ -191,17 +223,15 @@
                 data.history.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'history-item';
-                    div.innerText = item.question;
+                    div.innerText = item.question || "صورة مرفقة 📷"; // إذا لم يكتب نصاً
                     div.onclick = () => {
-                        document.getElementById('chatBox').innerHTML = '<div class="message ai-msg">مرحباً! أنا المساعد الذكي. كيف يمكنني مساعدتك اليوم؟ 🌊</div>';
-                        appendMessage(item.question, 'user');
+                        document.getElementById('chatBox').innerHTML = '<div class="message ai-msg">مرحباً! أنا المساعد السحابي.</div>';
+                        appendMessage(item.question, 'user', item.image_url);
                         appendMessage(item.answer, 'ai');
                         if(window.innerWidth <= 768) toggleSidebar(); 
                     };
                     historyList.appendChild(div);
                 });
-            } else {
-                historyList.innerHTML = '<div style="text-align:center; color:var(--color-7); margin-top:20px;">لا يوجد محادثات سابقة</div>';
             }
         } catch (err) {}
     };
@@ -209,19 +239,38 @@
     window.askAI = async () => {
         const inputField = document.getElementById('questionInput');
         const question = inputField.value.trim();
-        if (!question || !currentUID) return;
+        
+        if ((!question && !selectedImageFile) || !currentUID) return;
 
-        appendMessage(question, 'user');
+        // إظهار رسالة المستخدم (مع الصورة إن وجدت)
+        let localPreviewUrl = selectedImageFile ? document.getElementById('imagePreview').src : null;
+        appendMessage(question, 'user', localPreviewUrl);
+        
         inputField.value = '';
         document.getElementById('sendBtn').disabled = true;
         document.getElementById('loadingText').style.display = 'block';
 
+        let uploadedImageUrl = "";
+
         try {
+            // 1. إذا كان هناك صورة، ارفعها أولاً لـ Firebase Storage السحابي
+            if (selectedImageFile) {
+                document.getElementById('loadingText').innerText = "جاري رفع الصورة للسحابة...";
+                const fileRef = ref(storage, `uploads/${currentUID}/${Date.now()}_${selectedImageFile.name}`);
+                await uploadBytes(fileRef, selectedImageFile);
+                uploadedImageUrl = await getDownloadURL(fileRef); // جلب الرابط العام للصورة
+                removeImage(); // مسح المعاينة
+            }
+
+            document.getElementById('loadingText').innerText = "جاري التحليل والرد...";
+
+            // 2. إرسال السؤال ورابط الصورة لخادم Flask
             const res = await fetch('/ask', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: question, uid: currentUID }) // نرسل السؤال ورقم المستخدم
+                body: JSON.stringify({ question: question, image_url: uploadedImageUrl, uid: currentUID })
             });
+            
             const data = await res.json();
             if (data.answer) {
                 appendMessage(data.answer, 'ai');
@@ -234,6 +283,7 @@
         } finally {
             document.getElementById('sendBtn').disabled = false;
             document.getElementById('loadingText').style.display = 'none';
+            document.getElementById('loadingText').innerText = "جاري تحليل البيانات...";
             inputField.focus();
         }
     };
