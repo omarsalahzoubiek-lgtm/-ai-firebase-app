@@ -3,78 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المساعد الذكي الاحترافي</title>
+    <meta name="theme-color" content="#023e8a">
+    <title>المساعد الذكي السحابي | SaaS</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #ece5dd; margin: 0; padding: 0; height: 100vh; overflow: hidden; display: flex; }
-        
-        /* تصميم الشريط الجانبي وتجاوبه مع الجوال */
-        .sidebar { 
-            width: 300px; background: #202c33; color: #e9edef; display: flex; flex-direction: column; border-left: 1px solid #2a3942; 
-            transition: transform 0.3s ease; z-index: 1000;
+        /* تطبيق اللوحة اللونية */
+        :root {
+            --color-1: #03045e; /* أزرق داكن جداً (خلفية الشريط الجانبي) */
+            --color-2: #023e8a; /* أزرق داكن (الهيدر) */
+            --color-3: #0077b6; /* أزرق أساسي (الأزرار والتأثيرات) */
+            --color-4: #0096c7; /* أزرق متوسط (رسالة المستخدم) */
+            --color-5: #00b4d8;
+            --color-6: #48cae4; /* أزرق فاتح (تحديد الإدخال) */
+            --color-7: #90e0ef;
+            --color-8: #ade8f4; /* أزرق باهت (منطقة الكتابة) */
+            --color-9: #caf0f8; /* أزرق مائل للأبيض (خلفية المحادثة) */
         }
-        .sidebar-header { padding: 20px; background: #111b21; font-size: 18px; font-weight: bold; text-align: center; border-bottom: 1px solid #2a3942; }
-        .history-list { flex: 1; overflow-y: auto; padding: 10px; }
-        .history-item { background: #2a3942; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: 0.2s; }
-        .history-item:hover { background: #3a4b55; }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--color-9); margin: 0; padding: 0; height: 100vh; overflow: hidden; display: flex; }
+        
+        /* الشريط الجانبي */
+        .sidebar { 
+            width: 300px; background: var(--color-1); color: var(--color-9); display: flex; flex-direction: column; border-left: 1px solid var(--color-2); 
+            transition: transform 0.3s ease; z-index: 1000; box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+        }
+        .sidebar-header { padding: 20px; background: var(--color-2); font-size: 18px; font-weight: bold; text-align: center; border-bottom: 1px solid var(--color-3); letter-spacing: 1px;}
+        .history-list { flex: 1; overflow-y: auto; padding: 15px 10px; }
+        .history-item { background: var(--color-3); padding: 12px 15px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all 0.3s ease; border: 1px solid transparent;}
+        .history-item:hover { background: var(--color-4); border-color: var(--color-6); transform: translateX(-5px); }
         
         /* منطقة المحادثة */
-        .chat-container { flex: 1; display: flex; flex-direction: column; background: #efeae2; position: relative; }
-        .header { background: #008069; color: white; padding: 15px; text-align: center; font-size: 20px; font-weight: bold; display: flex; justify-content: center; align-items: center; position: relative;}
+        .chat-container { flex: 1; display: flex; flex-direction: column; background: var(--color-9); position: relative; }
+        .header { background: var(--color-2); color: white; padding: 18px; text-align: center; font-size: 20px; font-weight: bold; display: flex; justify-content: center; align-items: center; position: relative; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10;}
         
-        /* زر القائمة للموبايل (مخفي في الشاشات الكبيرة) */
         .menu-btn { display: none; position: absolute; right: 15px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
 
-        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .message { max-width: 85%; padding: 12px 16px; border-radius: 10px; line-height: 1.6; font-size: 15px; }
-        .user-msg { background: #d9fdd3; align-self: flex-start; border-top-right-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
-        .ai-msg { background: white; align-self: flex-end; border-top-left-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background-image: radial-gradient(var(--color-8) 1px, transparent 1px); background-size: 20px 20px; }
         
-        .input-area { display: flex; padding: 15px; background: #f0f2f5; gap: 10px;}
-        input { flex: 1; padding: 15px; border: none; border-radius: 20px; outline: none; font-size: 16px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);}
-        button { padding: 10px 25px; background: #008069; color: white; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.2s;}
-        button:hover { background: #016b58; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        .loading { font-style: italic; color: #888; font-size: 13px; align-self: flex-end; display: none; margin-bottom: 10px;}
+        .message { max-width: 85%; padding: 14px 18px; border-radius: 15px; line-height: 1.6; font-size: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .user-msg { background: var(--color-4); color: white; align-self: flex-start; border-top-right-radius: 0; }
+        .ai-msg { background: white; color: var(--color-1); align-self: flex-end; border-top-left-radius: 0; border: 1px solid var(--color-8); }
         
-        /* طبقة تظليل خلف القائمة في الجوال */
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
+        /* منطقة الكتابة */
+        .input-area { display: flex; padding: 20px; background: white; gap: 10px; border-top: 1px solid var(--color-8); box-shadow: 0 -2px 10px rgba(0,0,0,0.02);}
+        input { flex: 1; padding: 15px 20px; border: 2px solid var(--color-8); border-radius: 25px; outline: none; font-size: 16px; transition: 0.3s; background: var(--color-9); color: var(--color-1);}
+        input:focus { border-color: var(--color-4); background: white; box-shadow: 0 0 8px rgba(0, 150, 199, 0.2); }
+        input::placeholder { color: var(--color-3); opacity: 0.7;}
+        
+        button { padding: 12px 30px; background: var(--color-3); color: white; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 16px; transition: all 0.3s; box-shadow: 0 4px 6px rgba(0, 119, 182, 0.2);}
+        button:hover { background: var(--color-2); transform: translateY(-2px); box-shadow: 0 6px 12px rgba(2, 62, 138, 0.3); }
+        button:disabled { background: var(--color-8); color: var(--color-4); cursor: not-allowed; transform: none; box-shadow: none;}
+        
+        .loading { font-style: italic; color: var(--color-3); font-size: 13px; align-self: flex-end; display: none; margin-bottom: 10px; padding-left: 20px;}
+        
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(3, 4, 94, 0.6); z-index: 999; backdrop-filter: blur(3px); }
 
-        /* شاشات الجوال */
         @media (max-width: 768px) { 
             .sidebar { position: fixed; height: 100%; right: 0; transform: translateX(100%); }
             .sidebar.active { transform: translateX(0); }
             .menu-btn { display: block; }
-            .message { max-width: 95%; font-size: 14px;}
-            input { padding: 12px; font-size: 14px;}
-            button { padding: 10px 15px; font-size: 14px;}
+            .message { max-width: 90%; font-size: 14px;}
+            input { padding: 12px 15px; font-size: 14px;}
+            button { padding: 10px 20px; font-size: 14px;}
         }
     </style>
 </head>
 <body>
 
-<!-- طبقة التظليل للجوال -->
 <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 
-<!-- الشريط الجانبي -->
 <div class="sidebar" id="sidebar">
-    <div class="sidebar-header">🕒 سجل المحادثات</div>
+    <div class="sidebar-header">☁️ السجل السحابي</div>
     <div class="history-list" id="historyList">
-        <div style="text-align:center; margin-top:20px; color:#8696a0;">جاري تحميل السجل...</div>
+        <div style="text-align:center; margin-top:20px; color:var(--color-7);">جاري تحميل السجل...</div>
     </div>
 </div>
 
-<!-- منطقة المحادثة -->
 <div class="chat-container">
     <div class="header">
         <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-        🤖 المساعد السحابي
+        🤖 المساعد الذكي
     </div>
     <div class="chat-box" id="chatBox">
-        <div class="message ai-msg">مرحباً! أنا المساعد الذكي. كيف يمكنني مساعدتك اليوم؟</div>
+        <div class="message ai-msg">مرحباً! أنا المساعد الذكي. كيف يمكنني مساعدتك اليوم؟ 🌊</div>
     </div>
-    <div class="loading" id="loadingText">جاري التفكير...</div>
+    <div class="loading" id="loadingText">جاري المعالجة السحابية...</div>
     <div class="input-area">
-        <input type="text" id="questionInput" placeholder="اكتب سؤالك..." onkeypress="handleKeyPress(event)">
+        <input type="text" id="questionInput" placeholder="اكتب استفسارك هنا..." onkeypress="handleKeyPress(event)">
         <button id="sendBtn" onclick="askAI()">إرسال</button>
     </div>
 </div>
@@ -88,17 +102,13 @@
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
 
-    // دالة فتح وإغلاق القائمة الجانبية في الجوال
     function toggleSidebar() {
         sidebar.classList.toggle('active');
         overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
     }
 
-    // دالة إرسال بيانات الزائر الخفية
     async function trackVisitor() {
-        try {
-            await fetch('/track', { method: 'POST' });
-        } catch(e) {} // نتجاهل الأخطاء لكي لا يلاحظ المستخدم شيئاً
+        try { await fetch('/track', { method: 'POST' }); } catch(e) {} 
     }
 
     function appendMessage(text, sender) {
@@ -120,10 +130,10 @@
                     div.className = 'history-item';
                     div.innerText = item.question;
                     div.onclick = () => {
-                        chatBox.innerHTML = '<div class="message ai-msg">مرحباً! أنا المساعد الذكي. كيف يمكنني مساعدتك اليوم؟</div>';
+                        chatBox.innerHTML = '<div class="message ai-msg">مرحباً! أنا المساعد الذكي. كيف يمكنني مساعدتك اليوم؟ 🌊</div>';
                         appendMessage(item.question, 'user');
                         appendMessage(item.answer, 'ai');
-                        if(window.innerWidth <= 768) toggleSidebar(); // إغلاق القائمة في الجوال بعد الاختيار
+                        if(window.innerWidth <= 768) toggleSidebar(); 
                     };
                     historyList.appendChild(div);
                 });
@@ -164,7 +174,6 @@
 
     function handleKeyPress(e) { if (e.key === 'Enter') askAI(); }
     
-    // عند فتح الموقع: اجلب السجل + أرسل بيانات الزائر
     window.onload = () => {
         fetchHistory();
         trackVisitor();
