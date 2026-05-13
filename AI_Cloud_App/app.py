@@ -46,8 +46,8 @@ def ask_ai():
     # تجهيز رسالة النظام بناءً على وجود صورة أم لا
     messages = [{"role": "system", "content": "أنت مساعد ذكي ومفيد وتتحدث العربية بطلاقة."}]
     
-    if image_url:
-        # إذا كان هناك صورة، نستخدم صيغة نموذج الرؤية (Vision)
+if image_url:
+        # استخدام النسخة الأخف والأكثر استقراراً للصور
         messages.append({
             "role": "user",
             "content": [
@@ -55,11 +55,10 @@ def ask_ai():
                 {"type": "image_url", "image_url": {"url": image_url}}
             ]
         })
-        model_name = "llama-3.2-90b-vision-preview" # نموذج الرؤية
+        model_name = "llama-3.2-11b-vision-preview" # تم التغيير هنا
     else:
-        # نص فقط
         messages.append({"role": "user", "content": user_question})
-        model_name = "llama-3.3-70b-versatile" # نموذج النص
+        model_name = "llama-3.3-70b-versatile"
 
     try:
         response = client.chat.completions.create(
@@ -69,7 +68,6 @@ def ask_ai():
         )
         ai_answer = response.choices[0].message.content
 
-        # حفظ المحادثة (مع رابط الصورة إن وجد)
         chat_document = {
             "uid": uid,
             "question": user_question,
@@ -81,9 +79,10 @@ def ask_ai():
 
         return jsonify({"answer": ai_answer})
     except Exception as e:
-        print(e)
-        return jsonify({"error": "حدث خطأ داخلي في معالجة الذكاء الاصطناعي."}), 500
-
+        # سيقوم السيرفر الآن بطباعة الخطأ بدقة لنعرف المشكلة
+        print(f"❌ خطأ في معالجة الذكاء الاصطناعي: {str(e)}")
+        return jsonify({"error": f"مشكلة في الذكاء الاصطناعي: {str(e)}"}), 500
+        
 @app.route('/history', methods=['GET'])
 def get_history():
     uid = request.args.get('uid')
