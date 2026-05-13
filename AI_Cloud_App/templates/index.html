@@ -6,18 +6,14 @@
     <meta name="theme-color" content="#274c77">
     <title>المساعد الذكي السحابي | SaaS</title>
     <style>
-        /* اللوحة اللونية الجديدة */
+        /* اللوحة اللونية Oceanic Corporate */
         :root {
-            --bg-light: #e7ecef;     /* رمادي فاتح (خلفية المحادثة) */
-            --primary-dark: #274c77; /* أزرق داكن (الشريط والهيدر) */
-            --primary-med: #6096ba;  /* أزرق متوسط (الأزرار ورسالة المستخدم) */
-            --primary-light: #a3cef1;/* أزرق فاتح (التأثيرات الجمالية) */
-            --gray-accent: #8b8c89;  /* رمادي (النصوص الثانوية والحدود) */
+            --bg-light: #e7ecef; --primary-dark: #274c77; --primary-med: #6096ba; 
+            --primary-light: #a3cef1; --gray-accent: #8b8c89;
         }
 
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-light); margin: 0; padding: 0; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center;}
         
-        /* شاشة تسجيل الدخول */
         .auth-container { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(39, 76, 119, 0.15); text-align: center; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; border-top: 5px solid var(--primary-med);}
         .auth-container h2 { color: var(--primary-dark); margin-top: 0; }
         .auth-input { padding: 15px; border: 1px solid var(--gray-accent); border-radius: 8px; font-size: 16px; outline: none; transition: 0.3s; }
@@ -28,10 +24,8 @@
         .btn-secondary:hover { background: var(--bg-light); }
         .auth-error { color: #d90429; font-size: 14px; display: none; }
 
-        /* حاوية التطبيق */
         .app-wrapper { display: none; width: 100%; height: 100vh; flex-direction: row; }
 
-        /* الشريط الجانبي */
         .sidebar { width: 300px; background: var(--primary-dark); color: white; display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 1000; box-shadow: -2px 0 10px rgba(0,0,0,0.1); }
         .sidebar-header { padding: 20px; background: rgba(0,0,0,0.2); font-size: 18px; font-weight: bold; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .history-list { flex: 1; overflow-y: auto; padding: 15px 10px; }
@@ -49,17 +43,14 @@
         .user-msg { background: var(--primary-med); color: white; align-self: flex-start; border-top-right-radius: 0; }
         .ai-msg { background: white; color: #333; align-self: flex-end; border-top-left-radius: 0; border: 1px solid #ddd; }
         
-        /* الصور داخل المحادثة */
         .chat-image { max-width: 250px; border-radius: 8px; margin-bottom: 10px; display: block; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);}
 
         .input-area { display: flex; padding: 20px; background: white; gap: 10px; border-top: 1px solid #ddd; align-items: center; position: relative;}
         
-        /* معاينة الصورة المرفوعة */
         #imagePreviewContainer { display: none; position: absolute; top: -80px; right: 20px; background: white; padding: 5px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 1px solid var(--primary-light);}
         #imagePreview { height: 60px; border-radius: 5px; }
         #removeImageBtn { position: absolute; top: -5px; right: -5px; background: #d90429; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; }
 
-        /* زر الإرفاق */
         .attach-btn { background: var(--bg-light); color: var(--primary-dark); border: 1px solid var(--gray-accent); border-radius: 50%; width: 45px; height: 45px; font-size: 20px; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center;}
         .attach-btn:hover { background: var(--primary-light); color: white; border-color: var(--primary-med);}
 
@@ -85,7 +76,6 @@
 </head>
 <body>
 
-<!-- شاشة تسجيل الدخول -->
 <div class="auth-container" id="authScreen">
     <h2>تسجيل الدخول للمنصة</h2>
     <input type="email" id="emailInput" class="auth-input" placeholder="البريد الإلكتروني">
@@ -95,7 +85,6 @@
     <button class="btn-secondary" onclick="window.signup()">إنشاء حساب جديد</button>
 </div>
 
-<!-- واجهة التطبيق -->
 <div class="app-wrapper" id="appScreen">
     <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
@@ -112,13 +101,11 @@
         <div class="loading" id="loadingText">جاري تحليل البيانات...</div>
         
         <div class="input-area">
-            <!-- مساحة معاينة الصورة -->
             <div id="imagePreviewContainer">
                 <button id="removeImageBtn" onclick="removeImage()">✖</button>
                 <img id="imagePreview" src="" alt="preview">
             </div>
 
-            <!-- زر اختيار الصورة (مخفي) وزر الإرفاق -->
             <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="previewImage(event)">
             <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="إرفاق صورة">📎</button>
 
@@ -129,12 +116,11 @@
 </div>
 
 <script type="module">
+    // لاحظ: قمنا بحذف مكتبة التخزين الخاصة بـ Firebase تماماً
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-    // استدعاء مكتبة التخزين
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-    // ⚠️ استبدل هذا الكود ببيانات مشروعك ⚠️
+    // 1️⃣ ضع إعدادات Firebase الخاصة بك هنا:
     const firebaseConfig = {
         apiKey: "YOUR_API_KEY",
         authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -144,14 +130,15 @@
         appId: "YOUR_APP_ID"
     };
 
+    // 2️⃣ ضع مفتاح ImgBB الذي نسخته هنا:
+    const IMGBB_API_KEY = "84d1c2922f7fcec695cdd1236c8db681";
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const storage = getStorage(app); // تعريف خدمة التخزين
     
     let currentUID = null;
-    let selectedImageFile = null; // متغير لحفظ الصورة المختارة
+    let selectedImageFile = null;
 
-    // ... [نفس دوال المصادقة السابقة] ...
     window.login = () => { signInWithEmailAndPassword(auth, document.getElementById('emailInput').value, document.getElementById('passwordInput').value).catch(err => showError("البيانات غير صحيحة")); };
     window.signup = () => { createUserWithEmailAndPassword(auth, document.getElementById('emailInput').value, document.getElementById('passwordInput').value).catch(err => showError("خطأ في الإنشاء")); };
     window.logout = () => signOut(auth);
@@ -178,7 +165,6 @@
         document.getElementById('overlay').style.display = document.getElementById('sidebar').classList.contains('active') ? 'block' : 'none';
     }
 
-    // دوال التعامل مع الصور في الواجهة
     window.previewImage = (event) => {
         const file = event.target.files[0];
         if (file) {
@@ -223,7 +209,7 @@
                 data.history.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'history-item';
-                    div.innerText = item.question || "صورة مرفقة 📷"; // إذا لم يكتب نصاً
+                    div.innerText = item.question || "صورة مرفقة 📷"; 
                     div.onclick = () => {
                         document.getElementById('chatBox').innerHTML = '<div class="message ai-msg">مرحباً! أنا المساعد السحابي.</div>';
                         appendMessage(item.question, 'user', item.image_url);
@@ -242,7 +228,6 @@
         
         if ((!question && !selectedImageFile) || !currentUID) return;
 
-        // إظهار رسالة المستخدم (مع الصورة إن وجدت)
         let localPreviewUrl = selectedImageFile ? document.getElementById('imagePreview').src : null;
         appendMessage(question, 'user', localPreviewUrl);
         
@@ -253,18 +238,30 @@
         let uploadedImageUrl = "";
 
         try {
-            // 1. إذا كان هناك صورة، ارفعها أولاً لـ Firebase Storage السحابي
+            // المعالجة عبر ImgBB بدلاً من Firebase Storage
             if (selectedImageFile) {
-                document.getElementById('loadingText').innerText = "جاري رفع الصورة للسحابة...";
-                const fileRef = ref(storage, `uploads/${currentUID}/${Date.now()}_${selectedImageFile.name}`);
-                await uploadBytes(fileRef, selectedImageFile);
-                uploadedImageUrl = await getDownloadURL(fileRef); // جلب الرابط العام للصورة
-                removeImage(); // مسح المعاينة
+                document.getElementById('loadingText').innerText = "جاري رفع الصورة לסحابة ImgBB...";
+                
+                const formData = new FormData();
+                formData.append('image', selectedImageFile);
+
+                const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const imgbbData = await imgbbRes.json();
+                
+                if(imgbbData.success) {
+                    uploadedImageUrl = imgbbData.data.url; // الحصول على الرابط المباشر السريع
+                    removeImage();
+                } else {
+                    throw new Error("فشل الرفع");
+                }
             }
 
             document.getElementById('loadingText').innerText = "جاري التحليل والرد...";
 
-            // 2. إرسال السؤال ورابط الصورة لخادم Flask
             const res = await fetch('/ask', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
