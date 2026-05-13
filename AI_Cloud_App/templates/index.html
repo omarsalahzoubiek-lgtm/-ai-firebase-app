@@ -3,95 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> AI Chat </title>
+    <title>المساعد الذكي الاحترافي</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #ece5dd; margin: 0; padding: 0; height: 100vh; display: flex; }
-        .app-container { display: flex; width: 100%; height: 100vh; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #ece5dd; margin: 0; padding: 0; height: 100vh; overflow: hidden; display: flex; }
         
-        .sidebar { width: 300px; background: #202c33; color: #e9edef; display: flex; flex-direction: column; border-left: 1px solid #2a3942; }
+        /* تصميم الشريط الجانبي وتجاوبه مع الجوال */
+        .sidebar { 
+            width: 300px; background: #202c33; color: #e9edef; display: flex; flex-direction: column; border-left: 1px solid #2a3942; 
+            transition: transform 0.3s ease; z-index: 1000;
+        }
         .sidebar-header { padding: 20px; background: #111b21; font-size: 18px; font-weight: bold; text-align: center; border-bottom: 1px solid #2a3942; }
-        
-        .new-chat-btn { display: block; width: 100%; padding: 12px; margin-top: 15px; background: #00a884; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
-        .new-chat-btn:hover { background: #008f6f; }
-
         .history-list { flex: 1; overflow-y: auto; padding: 10px; }
         .history-item { background: #2a3942; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: 0.2s; }
         .history-item:hover { background: #3a4b55; }
         
-        .chat-container { flex: 1; display: flex; flex-direction: column; background: #efeae2; }
-        .header { background: #008069; color: white; padding: 15px; text-align: center; font-size: 20px; font-weight: bold; }
+        /* منطقة المحادثة */
+        .chat-container { flex: 1; display: flex; flex-direction: column; background: #efeae2; position: relative; }
+        .header { background: #008069; color: white; padding: 15px; text-align: center; font-size: 20px; font-weight: bold; display: flex; justify-content: center; align-items: center; position: relative;}
+        
+        /* زر القائمة للموبايل (مخفي في الشاشات الكبيرة) */
+        .menu-btn { display: none; position: absolute; right: 15px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+
         .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .message { max-width: 80%; padding: 12px 16px; border-radius: 10px; line-height: 1.6; font-size: 15px; }
+        .message { max-width: 85%; padding: 12px 16px; border-radius: 10px; line-height: 1.6; font-size: 15px; }
         .user-msg { background: #d9fdd3; align-self: flex-start; border-top-right-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
         .ai-msg { background: white; align-self: flex-end; border-top-left-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
         
-        .input-area { display: flex; padding: 15px; background: #f0f2f5; align-items: flex-end; }
-        textarea { 
-            flex: 1; 
-            padding: 12px 15px; 
-            border: none; 
-            border-radius: 8px; 
-            outline: none; 
-            font-size: 16px; 
-            font-family: inherit;
-            resize: none; 
-            overflow-y: auto; 
-            min-height: 24px;
-            max-height: 150px;
-            line-height: 1.5;
-        }
-        button { 
-            height: 48px; 
-            padding: 10px 25px; 
-            margin-right: 10px; 
-            background: #008069; 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            font-size: 16px; 
-        }
+        .input-area { display: flex; padding: 15px; background: #f0f2f5; gap: 10px;}
+        input { flex: 1; padding: 15px; border: none; border-radius: 20px; outline: none; font-size: 16px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);}
+        button { padding: 10px 25px; background: #008069; color: white; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.2s;}
+        button:hover { background: #016b58; }
         button:disabled { background: #ccc; cursor: not-allowed; }
         .loading { font-style: italic; color: #888; font-size: 13px; align-self: flex-end; display: none; margin-bottom: 10px;}
         
-        @media (max-width: 768px) { .sidebar { display: none; } }
+        /* طبقة تظليل خلف القائمة في الجوال */
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
+
+        /* شاشات الجوال */
+        @media (max-width: 768px) { 
+            .sidebar { position: fixed; height: 100%; right: 0; transform: translateX(100%); }
+            .sidebar.active { transform: translateX(0); }
+            .menu-btn { display: block; }
+            .message { max-width: 95%; font-size: 14px;}
+            input { padding: 12px; font-size: 14px;}
+            button { padding: 10px 15px; font-size: 14px;}
+        }
     </style>
 </head>
 <body>
 
-<div class="app-container">
-    <div class="sidebar">
-        <div class="sidebar-header">
-            🕒 سجل المحادثات
-            <button class="new-chat-btn" onclick="startNewChat()">+ محادثة جديدة</button>
-        </div>
-        <div class="history-list" id="historyList">
-            <div style="text-align:center; margin-top:20px; color:#8696a0;">جاري تحميل السجل...</div>
-        </div>
-    </div>
+<!-- طبقة التظليل للجوال -->
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 
-    <div class="chat-container">
-        <div class="header">🤖 AI Chat</div>
-        <div class="chat-box" id="chatBox">
-            <div class="message ai-msg">السلام عليكم! أنا المساعد الذكي. كيف يمكنني مساعدتك اليوم؟</div>
-        </div>
-        <div class="loading" id="loadingText">جاري التفكير...</div>
-        <div class="input-area">
-            <textarea id="questionInput" rows="1" placeholder="اكتب سؤالك هنا... (Shift + Enter لسطر جديد)" onkeydown="handleKeyPress(event)" oninput="autoResize(this)"></textarea>
-            <button id="sendBtn" onclick="askAI()">إرسال</button>
-        </div>
+<!-- الشريط الجانبي -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">🕒 سجل المحادثات</div>
+    <div class="history-list" id="historyList">
+        <div style="text-align:center; margin-top:20px; color:#8696a0;">جاري تحميل السجل...</div>
+    </div>
+</div>
+
+<!-- منطقة المحادثة -->
+<div class="chat-container">
+    <div class="header">
+        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+        🤖 المساعد السحابي
+    </div>
+    <div class="chat-box" id="chatBox">
+        <div class="message ai-msg">مرحباً! أنا المساعد الذكي. كيف يمكنني مساعدتك اليوم؟</div>
+    </div>
+    <div class="loading" id="loadingText">جاري التفكير...</div>
+    <div class="input-area">
+        <input type="text" id="questionInput" placeholder="اكتب سؤالك..." onkeypress="handleKeyPress(event)">
+        <button id="sendBtn" onclick="askAI()">إرسال</button>
     </div>
 </div>
 
 <script>
-    let currentChatId = null;
-
     const chatBox = document.getElementById('chatBox');
     const inputField = document.getElementById('questionInput');
     const sendBtn = document.getElementById('sendBtn');
     const loadingText = document.getElementById('loadingText');
     const historyList = document.getElementById('historyList');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+
+    // دالة فتح وإغلاق القائمة الجانبية في الجوال
+    function toggleSidebar() {
+        sidebar.classList.toggle('active');
+        overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+    }
+
+    // دالة إرسال بيانات الزائر الخفية
+    async function trackVisitor() {
+        try {
+            await fetch('/track', { method: 'POST' });
+        } catch(e) {} // نتجاهل الأخطاء لكي لا يلاحظ المستخدم شيئاً
+    }
 
     function appendMessage(text, sender) {
         const msgDiv = document.createElement('div');
@@ -101,49 +109,26 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    function startNewChat() {
-        currentChatId = null;
-        chatBox.innerHTML = '<div class="message ai-msg">السلام عليكم! أنا المساعد الذكي. كيف يمكنني مساعدتك اليوم؟</div>';
-    }
-
     async function fetchHistory() {
         try {
             const res = await fetch('/history');
             const data = await res.json();
             historyList.innerHTML = '';
-            
             if (data.history && data.history.length > 0) {
                 data.history.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'history-item';
-                    div.innerText = item.title;
-                    div.onclick = () => loadFullChat(item.chat_id);
+                    div.innerText = item.question;
+                    div.onclick = () => {
+                        chatBox.innerHTML = '<div class="message ai-msg">مرحباً! أنا المساعد الذكي. كيف يمكنني مساعدتك اليوم؟</div>';
+                        appendMessage(item.question, 'user');
+                        appendMessage(item.answer, 'ai');
+                        if(window.innerWidth <= 768) toggleSidebar(); // إغلاق القائمة في الجوال بعد الاختيار
+                    };
                     historyList.appendChild(div);
                 });
-            } else {
-                historyList.innerHTML = '<div style="text-align:center; color:#8696a0; margin-top:20px;">لا يوجد محادثات سابقة</div>';
             }
-        } catch (err) {
-            historyList.innerHTML = '<div style="text-align:center; color:#ff6b6b; margin-top:20px;">❌ خطأ في الاتصال</div>';
-        }
-    }
-
-    async function loadFullChat(chatId) {
-        currentChatId = chatId;
-        chatBox.innerHTML = '<div style="text-align:center; color:#888;">جاري تحميل المحادثة...</div>';
-        try {
-            const res = await fetch('/chat/' + chatId);
-            const data = await res.json();
-            chatBox.innerHTML = '';
-
-            if (data.messages) {
-                data.messages.forEach(msg => {
-                    appendMessage(msg.content, msg.role === 'user' ? 'user' : 'ai');
-                });
-            }
-        } catch (err) {
-            chatBox.innerHTML = '<div style="text-align:center; color:#ff6b6b;">❌ خطأ في تحميل المحادثة</div>';
-        }
+        } catch (err) {}
     }
 
     async function askAI() {
@@ -151,11 +136,7 @@
         if (!question) return;
 
         appendMessage(question, 'user');
-        
-        // تفريغ مربع النص وإعادته لحجمه الطبيعي بعد الإرسال
         inputField.value = '';
-        inputField.style.height = 'auto';
-        
         sendBtn.disabled = true;
         loadingText.style.display = 'block';
 
@@ -163,23 +144,17 @@
             const res = await fetch('/ask', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    question: question,
-                    chat_id: currentChatId
-                })
+                body: JSON.stringify({ question: question })
             });
-
             const data = await res.json();
-
             if (data.answer) {
-                currentChatId = data.chat_id;
                 appendMessage(data.answer, 'ai');
-                fetchHistory();
+                fetchHistory(); 
             } else {
                 appendMessage("❌ حدث خطأ: " + data.error, 'ai');
             }
         } catch (err) {
-            appendMessage("❌ حدث خطأ في الاتصال.", 'ai');
+            appendMessage("❌ حدث خطأ في الاتصال بالخادم.", 'ai');
         } finally {
             sendBtn.disabled = false;
             loadingText.style.display = 'none';
@@ -187,23 +162,13 @@
         }
     }
 
-    // دالة للتحكم في لوحة المفاتيح
-    function handleKeyPress(e) { 
-        // إذا ضغط المستخدم على Enter بدون زر Shift، قم بالإرسال
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault(); // منع إنشاء سطر جديد فارغ بعد الإرسال
-            askAI();
-        }
-        // إذا ضغط Shift + Enter سيقوم المتصفح بإنشاء سطر جديد تلقائياً
-    }
-
-    // دالة لتكبير المربع تلقائياً عند كتابة سطور كثيرة
-    function autoResize(textarea) {
-        textarea.style.height = 'auto'; // إعادة تعيين الارتفاع
-        textarea.style.height = textarea.scrollHeight + 'px'; // ضبط الارتفاع ليتناسب مع المحتوى
-    }
+    function handleKeyPress(e) { if (e.key === 'Enter') askAI(); }
     
-    window.onload = fetchHistory;
+    // عند فتح الموقع: اجلب السجل + أرسل بيانات الزائر
+    window.onload = () => {
+        fetchHistory();
+        trackVisitor();
+    };
 </script>
 </body>
 </html>
