@@ -108,7 +108,7 @@
                 <div id="textPreview">📄 ملف مرفق</div>
             </div>
 
-            <!-- الزر الآن يدعم الـ PDF أيضاً -->
+            <!-- الزر الآن يدعم الـ PDF والصور والملفات النصية -->
             <input type="file" id="fileInput" accept="image/*, .txt, .csv, .json, .pdf" style="display: none;" onchange="handleFileSelect(event)">
             <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="إرفاق ملف أو صورة">📎</button>
 
@@ -122,18 +122,18 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-    // 1️⃣ ضع إعدادات Firebase الخاصة بك هنا:
-  const firebaseConfig = {
-  apiKey: "AIzaSyCsbaIpgrZY31_u4bC14-beARQLJYI-Qsg",
-  authDomain: "oamrsalah-8787d.firebaseapp.com",
-  projectId: "oamrsalah-8787d",
-  storageBucket: "oamrsalah-8787d.firebasestorage.app",
-  messagingSenderId: "231270748295",
-  appId: "1:231270748295:web:211365a4c099aa98d3a822",
-  measurementId: "G-VC5YE4N1N8"
-};
+    // 1️⃣ إعدادات Firebase الخاصة بك:
+    const firebaseConfig = {
+        apiKey: "AIzaSyCsbaIpgrZY31_u4bC14-beARQLJYI-Qsg",
+        authDomain: "oamrsalah-8787d.firebaseapp.com",
+        projectId: "oamrsalah-8787d",
+        storageBucket: "oamrsalah-8787d.firebasestorage.app",
+        messagingSenderId: "231270748295",
+        appId: "1:231270748295:web:211365a4c099aa98d3a822",
+        measurementId: "G-VC5YE4N1N8"
+    };
 
-    // 2️⃣ ضع مفتاح ImgBB الذي نسخته هنا:
+    // 2️⃣ مفتاح ImgBB:
     const IMGBB_API_KEY = "84d1c2922f7fcec695cdd1236c8db681";
 
     const app = initializeApp(firebaseConfig);
@@ -145,7 +145,7 @@
     let selectedFileName = "";
 
     window.login = () => { signInWithEmailAndPassword(auth, document.getElementById('emailInput').value, document.getElementById('passwordInput').value).catch(err => showError("البيانات غير صحيحة")); };
-    window.signup = () => { createUserWithEmailAndPassword(auth, document.getElementById('emailInput').value, document.getElementById('passwordInput').value).catch(err => showError("خطأ في الإنشاء")); };
+    window.signup = () => { createUserWithEmailAndPassword(auth, document.getElementById('emailInput').value, document.getElementById('passwordInput').value).catch(err => showError("خطأ في الإنشاء أو الإيميل مستخدم")); };
     window.logout = () => signOut(auth);
     function showError(msg) { document.getElementById('authError').innerText = msg; document.getElementById('authError').style.display = 'block'; }
 
@@ -170,7 +170,7 @@
         document.getElementById('overlay').style.display = document.getElementById('sidebar').classList.contains('active') ? 'block' : 'none';
     }
 
-    // الدالة الذكية للتعامل مع أنواع الملفات المختلفة
+    // دالة للتعامل مع أنواع الملفات المختلفة
     window.handleFileSelect = async (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -179,7 +179,6 @@
         document.getElementById('filePreviewContainer').style.display = 'flex';
 
         if (file.type.startsWith('image/')) {
-            // معالجة الصور
             selectedImageFile = file;
             selectedTextContent = null;
             const reader = new FileReader();
@@ -191,7 +190,6 @@
             reader.readAsDataURL(file);
             
         } else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-            // معالجة ملفات الـ PDF
             selectedImageFile = null;
             document.getElementById('textPreview').innerText = "جاري قراءة الـ PDF... ⏳";
             document.getElementById('imagePreview').style.display = 'none';
@@ -202,7 +200,6 @@
                 const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
                 let fullText = "";
                 
-                // استخراج النص من كل صفحة في الـ PDF
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const textContent = await page.getTextContent();
@@ -218,7 +215,6 @@
             }
             
         } else {
-            // معالجة الملفات النصية العادية (txt, csv)
             selectedImageFile = null;
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -302,6 +298,7 @@
         let uploadedImageUrl = "";
 
         try {
+            // معالجة رفع الصورة إلى ImgBB واصطياد الأخطاء بدقة
             if (selectedImageFile) {
                 document.getElementById('loadingText').innerText = "جاري رفع الصورة لسحابة ImgBB...";
                 const formData = new FormData();
@@ -309,12 +306,19 @@
 
                 const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
                 const imgbbData = await imgbbRes.json();
-                if(imgbbData.success) uploadedImageUrl = imgbbData.data.url;
+                
+                if(imgbbData.success) {
+                    uploadedImageUrl = imgbbData.data.url;
+                } else {
+                    // في حال فشل الرفع من ImgBB
+                    throw new Error("فشل رفع الصورة: " + (imgbbData.error ? imgbbData.error.message : "خطأ غير معروف"));
+                }
             }
 
             removeFile(); 
             document.getElementById('loadingText').innerText = "جاري التحليل السحابي والرد...";
 
+            // إرسال البيانات إلى السيرفر
             const res = await fetch('/ask', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -322,14 +326,19 @@
             });
             
             const data = await res.json();
+            
+            // قراءة رد السيرفر وإظهار الخطأ الدقيق إن وجد
             if (data.answer) {
                 appendMessage(data.answer, 'ai');
                 fetchHistory(); 
+            } else if (data.error) {
+                throw new Error(data.error); // سيقوم برمي الخطأ ليتم طباعته للمستخدم
             } else {
-                appendMessage("❌ حدث خطأ", 'ai');
+                throw new Error("حدث خطأ غير متوقع من الخادم.");
             }
         } catch (err) {
-            appendMessage("❌ حدث خطأ في الاتصال بالخادم.", 'ai');
+            // طباعة رسالة الخطأ للمستخدم بوضوح تام
+            appendMessage("❌ حدث خطأ: " + err.message, 'ai');
         } finally {
             document.getElementById('sendBtn').disabled = false;
             document.getElementById('loadingText').style.display = 'none';
