@@ -6,7 +6,6 @@
     <meta name="theme-color" content="#274c77">
     <title>المساعد الذكي السحابي | SaaS</title>
     
-    <!-- استدعاء مكتبة قراءة الـ PDF السحابية -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -36,15 +35,18 @@
         .chat-container { flex: 1; display: flex; flex-direction: column; background: var(--bg-light); position: relative; }
         .header { background: white; color: var(--primary-dark); padding: 18px; text-align: center; font-size: 20px; font-weight: bold; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 10;}
         .menu-btn { display: none; position: absolute; right: 15px; background: none; border: none; color: var(--primary-dark); font-size: 24px; cursor: pointer; }
+        
+        /* أزرار الهيدر الجديدة */
         .logout-btn { position: absolute; left: 15px; background: var(--gray-accent); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: 0.3s; }
         .logout-btn:hover { background: #6b6c69; }
+        .new-chat-btn { position: absolute; left: 85px; background: var(--primary-med); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.3s; }
+        .new-chat-btn:hover { background: var(--primary-dark); }
 
         .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
         .message { max-width: 80%; padding: 14px 18px; border-radius: 12px; line-height: 1.6; font-size: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .user-msg { background: var(--primary-med); color: white; align-self: flex-start; border-top-right-radius: 0; }
         .ai-msg { background: white; color: #333; align-self: flex-end; border-top-left-radius: 0; border: 1px solid #ddd; }
         .chat-image { max-width: 250px; border-radius: 8px; margin-bottom: 10px; display: block; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);}
-        
         .chat-file { background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 14px;}
 
         .input-area { display: flex; padding: 20px; background: white; gap: 10px; border-top: 1px solid #ddd; align-items: center; position: relative;}
@@ -72,6 +74,8 @@
             .menu-btn { display: block; }
             .attach-btn { width: 40px; height: 40px; font-size: 18px; }
             input.chat-input { padding: 12px; font-size: 14px;}
+            .logout-btn { left: 10px; padding: 6px 10px; font-size: 12px;}
+            .new-chat-btn { left: 65px; padding: 6px 10px; font-size: 12px;}
         }
     </style>
 </head>
@@ -89,12 +93,13 @@
 <div class="app-wrapper" id="appScreen">
     <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">☁️ سجل المحادثات</div>
+        <div class="sidebar-header">☁️ سجل المحادثات السابقة</div>
         <div class="history-list" id="historyList"></div>
     </div>
     <div class="chat-container">
         <div class="header">
             <button class="logout-btn" onclick="window.logout()">خروج</button>
+            <button class="new-chat-btn" onclick="window.startNewChat()">محادثة جديدة ➕</button>
             <button class="menu-btn" onclick="toggleSidebar()">☰</button>
             🤖 المساعد السحابي الذكي
         </div>
@@ -108,11 +113,10 @@
                 <div id="textPreview">📄 ملف مرفق</div>
             </div>
 
-            <!-- الزر الآن يدعم الـ PDF والصور والملفات النصية -->
             <input type="file" id="fileInput" accept="image/*, .txt, .csv, .json, .pdf" style="display: none;" onchange="handleFileSelect(event)">
             <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="إرفاق ملف أو صورة">📎</button>
 
-            <input type="text" id="questionInput" class="chat-input" placeholder="اسألني، أو ارفع صورة، أو PDF لألخصه لك..." onkeypress="handleKeyPress(event)">
+            <input type="text" id="questionInput" class="chat-input" placeholder="اكتب سؤالك هنا..." onkeypress="handleKeyPress(event)">
             <button id="sendBtn" class="chat-btn" onclick="askAI()">إرسال</button>
         </div>
     </div>
@@ -122,7 +126,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-    // 1️⃣ إعدادات Firebase الخاصة بك:
     const firebaseConfig = {
         apiKey: "AIzaSyCsbaIpgrZY31_u4bC14-beARQLJYI-Qsg",
         authDomain: "oamrsalah-8787d.firebaseapp.com",
@@ -133,7 +136,6 @@
         measurementId: "G-VC5YE4N1N8"
     };
 
-    // 2️⃣ مفتاح ImgBB:
     const IMGBB_API_KEY = "84d1c2922f7fcec695cdd1236c8db681";
 
     const app = initializeApp(firebaseConfig);
@@ -143,6 +145,9 @@
     let selectedImageFile = null;
     let selectedTextContent = null; 
     let selectedFileName = "";
+    
+    // 🧠 مصفوفة الذاكرة لحفظ سياق المحادثة الحالية
+    let currentChatContext = [];
 
     window.login = () => { signInWithEmailAndPassword(auth, document.getElementById('emailInput').value, document.getElementById('passwordInput').value).catch(err => showError("البيانات غير صحيحة")); };
     window.signup = () => { createUserWithEmailAndPassword(auth, document.getElementById('emailInput').value, document.getElementById('passwordInput').value).catch(err => showError("خطأ في الإنشاء أو الإيميل مستخدم")); };
@@ -155,7 +160,7 @@
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('appScreen').style.display = 'flex';
             document.body.style.justifyContent = 'flex-start';
-            document.getElementById('chatBox').innerHTML = '<div class="message ai-msg">السلام عليكم , تفضل كيف يمكنني مساعدتك</div>';
+            window.startNewChat(); // تفعيل محادثة جديدة عند الدخول
             fetchHistory();
         } else {
             currentUID = null;
@@ -165,12 +170,18 @@
         }
     });
 
+    // دالة بدء محادثة جديدة (تفرغ الذاكرة وتنظف الشاشة)
+    window.startNewChat = () => {
+        currentChatContext = []; // تفريغ الذاكرة
+        document.getElementById('chatBox').innerHTML = '<div class="message ai-msg">مرحباً بك! لقد بدأنا محادثة جديدة. يمكنك سؤالي و سأتذكر ما تقوله لي. ✨</div>';
+        if(window.innerWidth <= 768) toggleSidebar(); 
+    };
+
     window.toggleSidebar = () => {
         document.getElementById('sidebar').classList.toggle('active');
         document.getElementById('overlay').style.display = document.getElementById('sidebar').classList.contains('active') ? 'block' : 'none';
     }
 
-    // دالة للتعامل مع أنواع الملفات المختلفة
     window.handleFileSelect = async (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -207,13 +218,12 @@
                     fullText += pageText + "\n";
                 }
                 
-                selectedTextContent = fullText.trim() ? fullText : "هذا الملف عبارة عن صور ممسوحة ضوئياً ولا يحتوي على نص يمكن استخراجه.";
+                selectedTextContent = fullText.trim() ? fullText : "لا يوجد نص.";
                 document.getElementById('textPreview').innerText = `📑 ${selectedFileName} (${pdf.numPages} صفحات)`;
             } catch (error) {
-                document.getElementById('textPreview').innerText = "❌ فشل قراءة الـ PDF";
-                selectedTextContent = "حدث خطأ أثناء قراءة ملف الـ PDF.";
+                document.getElementById('textPreview').innerText = "❌ فشل القراءة";
+                selectedTextContent = "حدث خطأ";
             }
-            
         } else {
             selectedImageFile = null;
             const reader = new FileReader();
@@ -262,10 +272,18 @@
                     const div = document.createElement('div');
                     div.className = 'history-item';
                     div.innerText = item.question || "ملف مرفق 📑"; 
+                    // عند الضغط على محادثة سابقة يتم استرجاعها كذاكرة حالية
                     div.onclick = () => {
-                        document.getElementById('chatBox').innerHTML = '<div class="message ai-msg">السلام عليكم! أنا المساعد السحابي.</div>';
+                        document.getElementById('chatBox').innerHTML = '<div class="message ai-msg">لقد استرجعت هذه النقطة من السجل. يمكنك إكمال الحديث بناءً عليها.</div>';
                         appendMessage(item.question, 'user', item.image_url);
                         appendMessage(item.answer, 'ai');
+                        
+                        // تحديث الذاكرة بهذه المحادثة فقط لتكمل عليها
+                        currentChatContext = [
+                            { role: "user", content: item.question },
+                            { role: "assistant", content: item.answer }
+                        ];
+                        
                         if(window.innerWidth <= 768) toggleSidebar(); 
                     };
                     historyList.appendChild(div);
@@ -298,7 +316,6 @@
         let uploadedImageUrl = "";
 
         try {
-            // معالجة رفع الصورة إلى ImgBB واصطياد الأخطاء بدقة
             if (selectedImageFile) {
                 document.getElementById('loadingText').innerText = "جاري رفع الصورة لسحابة ImgBB...";
                 const formData = new FormData();
@@ -310,7 +327,6 @@
                 if(imgbbData.success) {
                     uploadedImageUrl = imgbbData.data.url;
                 } else {
-                    // في حال فشل الرفع من ImgBB
                     throw new Error("فشل رفع الصورة: " + (imgbbData.error ? imgbbData.error.message : "خطأ غير معروف"));
                 }
             }
@@ -318,27 +334,401 @@
             removeFile(); 
             document.getElementById('loadingText').innerText = "جاري التحليل السحابي والرد...";
 
-            // إرسال البيانات إلى السيرفر
             const res = await fetch('/ask', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: finalQuestion, image_url: uploadedImageUrl, uid: currentUID })
+                // إرسال الذاكرة (Context) مع السؤال الجديد
+                body: JSON.stringify({ question: finalQuestion, image_url: uploadedImageUrl, uid: currentUID, context: currentChatContext })
             });
             
             const data = await res.json();
             
-            // قراءة رد السيرفر وإظهار الخطأ الدقيق إن وجد
             if (data.answer) {
                 appendMessage(data.answer, 'ai');
+                
+                // تحديث الذاكرة بالسؤال الجديد والجواب الجديد
+                currentChatContext.push({ role: "user", content: finalQuestion });
+                currentChatContext.push({ role: "assistant", content: data.answer });
+                
                 fetchHistory(); 
             } else if (data.error) {
-                throw new Error(data.error); // سيقوم برمي الخطأ ليتم طباعته للمستخدم
+                throw new Error(data.error);
             } else {
                 throw new Error("حدث خطأ غير متوقع من الخادم.");
             }
         } catch (err) {
-            // طباعة رسالة الخطأ للمستخدم بوضوح تام
+            appendMessag<!DOCTYPE html>
+<html dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#274c77">
+    <title>المساعد الذكي السحابي | SaaS</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+
+    <style>
+        :root { --bg-light: #e7ecef; --primary-dark: #274c77; --primary-med: #6096ba; --primary-light: #a3cef1; --gray-accent: #8b8c89; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-light); margin: 0; padding: 0; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center;}
+        
+        .auth-container { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(39, 76, 119, 0.15); text-align: center; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; border-top: 5px solid var(--primary-med);}
+        .auth-container h2 { color: var(--primary-dark); margin-top: 0; }
+        .auth-input { padding: 15px; border: 1px solid var(--gray-accent); border-radius: 8px; font-size: 16px; outline: none; transition: 0.3s; }
+        .auth-input:focus { border-color: var(--primary-med); box-shadow: 0 0 5px var(--primary-light); }
+        .btn-primary { background: var(--primary-med); color: white; border: none; padding: 15px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-secondary { background: transparent; color: var(--primary-dark); border: 2px solid var(--primary-med); padding: 15px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-secondary:hover { background: var(--bg-light); }
+        .auth-error { color: #d90429; font-size: 14px; display: none; }
+
+        .app-wrapper { display: none; width: 100%; height: 100vh; flex-direction: row; }
+        .sidebar { width: 300px; background: var(--primary-dark); color: white; display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 1000; box-shadow: -2px 0 10px rgba(0,0,0,0.1); }
+        .sidebar-header { padding: 20px; background: rgba(0,0,0,0.2); font-size: 18px; font-weight: bold; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .history-list { flex: 1; overflow-y: auto; padding: 15px 10px; }
+        .history-item { background: rgba(255,255,255,0.1); padding: 12px 15px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: 0.3s; border-right: 3px solid transparent;}
+        .history-item:hover { background: rgba(255,255,255,0.2); border-color: var(--primary-light); }
+        
+        .chat-container { flex: 1; display: flex; flex-direction: column; background: var(--bg-light); position: relative; }
+        .header { background: white; color: var(--primary-dark); padding: 18px; text-align: center; font-size: 20px; font-weight: bold; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 10;}
+        .menu-btn { display: none; position: absolute; right: 15px; background: none; border: none; color: var(--primary-dark); font-size: 24px; cursor: pointer; }
+        
+        /* أزرار الهيدر الجديدة */
+        .logout-btn { position: absolute; left: 15px; background: var(--gray-accent); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: 0.3s; }
+        .logout-btn:hover { background: #6b6c69; }
+        .new-chat-btn { position: absolute; left: 85px; background: var(--primary-med); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.3s; }
+        .new-chat-btn:hover { background: var(--primary-dark); }
+
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .message { max-width: 80%; padding: 14px 18px; border-radius: 12px; line-height: 1.6; font-size: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .user-msg { background: var(--primary-med); color: white; align-self: flex-start; border-top-right-radius: 0; }
+        .ai-msg { background: white; color: #333; align-self: flex-end; border-top-left-radius: 0; border: 1px solid #ddd; }
+        .chat-image { max-width: 250px; border-radius: 8px; margin-bottom: 10px; display: block; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);}
+        .chat-file { background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 14px;}
+
+        .input-area { display: flex; padding: 20px; background: white; gap: 10px; border-top: 1px solid #ddd; align-items: center; position: relative;}
+        
+        #filePreviewContainer { display: none; position: absolute; top: -80px; right: 20px; background: white; padding: 5px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 1px solid var(--primary-light); align-items: center; gap: 10px;}
+        #imagePreview { height: 60px; border-radius: 5px; display: none; }
+        #textPreview { padding: 10px; font-size: 14px; font-weight: bold; color: var(--primary-dark); display: none; }
+        #removeFileBtn { position: absolute; top: -5px; right: -5px; background: #d90429; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; }
+
+        .attach-btn { background: var(--bg-light); color: var(--primary-dark); border: 1px solid var(--gray-accent); border-radius: 50%; width: 45px; height: 45px; font-size: 20px; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center;}
+        .attach-btn:hover { background: var(--primary-light); color: white; border-color: var(--primary-med);}
+
+        input.chat-input { flex: 1; padding: 15px 20px; border: 1px solid var(--gray-accent); border-radius: 25px; outline: none; font-size: 16px; background: var(--bg-light); transition: 0.3s;}
+        input.chat-input:focus { border-color: var(--primary-med); background: white;}
+        button.chat-btn { padding: 12px 25px; background: var(--primary-dark); color: white; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; }
+        button.chat-btn:hover { background: var(--primary-med); }
+        button.chat-btn:disabled { background: var(--gray-accent); cursor: not-allowed; }
+        
+        .loading { font-style: italic; color: var(--gray-accent); font-size: 13px; align-self: flex-end; display: none; margin-bottom: 10px; padding-left: 20px;}
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(39, 76, 119, 0.6); z-index: 999; }
+
+        @media (max-width: 768px) { 
+            .sidebar { position: fixed; height: 100%; right: 0; transform: translateX(100%); }
+            .sidebar.active { transform: translateX(0); }
+            .menu-btn { display: block; }
+            .attach-btn { width: 40px; height: 40px; font-size: 18px; }
+            input.chat-input { padding: 12px; font-size: 14px;}
+            .logout-btn { left: 10px; padding: 6px 10px; font-size: 12px;}
+            .new-chat-btn { left: 65px; padding: 6px 10px; font-size: 12px;}
+        }
+    </style>
+</head>
+<body>
+
+<div class="auth-container" id="authScreen">
+    <h2>تسجيل الدخول للمنصة</h2>
+    <input type="email" id="emailInput" class="auth-input" placeholder="البريد الإلكتروني">
+    <input type="password" id="passwordInput" class="auth-input" placeholder="كلمة المرور">
+    <div id="authError" class="auth-error">حدث خطأ في التسجيل</div>
+    <button class="btn-primary" onclick="window.login()">تسجيل الدخول</button>
+    <button class="btn-secondary" onclick="window.signup()">إنشاء حساب جديد</button>
+</div>
+
+<div class="app-wrapper" id="appScreen">
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">☁️ سجل المحادثات السابقة</div>
+        <div class="history-list" id="historyList"></div>
+    </div>
+    <div class="chat-container">
+        <div class="header">
+            <button class="logout-btn" onclick="window.logout()">خروج</button>
+            <button class="new-chat-btn" onclick="window.startNewChat()">محادثة جديدة ➕</button>
+            <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+            🤖 المساعد السحابي الذكي
+        </div>
+        <div class="chat-box" id="chatBox"></div>
+        <div class="loading" id="loadingText">جاري تحليل البيانات...</div>
+        
+        <div class="input-area">
+            <div id="filePreviewContainer">
+                <button id="removeFileBtn" onclick="removeFile()">✖</button>
+                <img id="imagePreview" src="" alt="preview">
+                <div id="textPreview">📄 ملف مرفق</div>
+            </div>
+
+            <input type="file" id="fileInput" accept="image/*, .txt, .csv, .json, .pdf" style="display: none;" onchange="handleFileSelect(event)">
+            <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="إرفاق ملف أو صورة">📎</button>
+
+            <input type="text" id="questionInput" class="chat-input" placeholder="اكتب سؤالك هنا..." onkeypress="handleKeyPress(event)">
+            <button id="sendBtn" class="chat-btn" onclick="askAI()">إرسال</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCsbaIpgrZY31_u4bC14-beARQLJYI-Qsg",
+        authDomain: "oamrsalah-8787d.firebaseapp.com",
+        projectId: "oamrsalah-8787d",
+        storageBucket: "oamrsalah-8787d.firebasestorage.app",
+        messagingSenderId: "231270748295",
+        appId: "1:231270748295:web:211365a4c099aa98d3a822",
+        measurementId: "G-VC5YE4N1N8"
+    };
+
+    const IMGBB_API_KEY = "84d1c2922f7fcec695cdd1236c8db681";
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    
+    let currentUID = null;
+    let selectedImageFile = null;
+    let selectedTextContent = null; 
+    let selectedFileName = "";
+    
+    // 🧠 مصفوفة الذاكرة لحفظ سياق المحادثة الحالية
+    let currentChatContext = [];
+
+    window.login = () => { signInWithEmailAndPassword(auth, document.getElementById('emailInput').value, document.getElementById('passwordInput').value).catch(err => showError("البيانات غير صحيحة")); };
+    window.signup = () => { createUserWithEmailAndPassword(auth, document.getElementById('emailInput').value, document.getElementById('passwordInput').value).catch(err => showError("خطأ في الإنشاء أو الإيميل مستخدم")); };
+    window.logout = () => signOut(auth);
+    function showError(msg) { document.getElementById('authError').innerText = msg; document.getElementById('authError').style.display = 'block'; }
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            currentUID = user.uid;
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('appScreen').style.display = 'flex';
+            document.body.style.justifyContent = 'flex-start';
+            window.startNewChat(); // تفعيل محادثة جديدة عند الدخول
+            fetchHistory();
+        } else {
+            currentUID = null;
+            document.getElementById('authScreen').style.display = 'flex';
+            document.getElementById('appScreen').style.display = 'none';
+            document.body.style.justifyContent = 'center';
+        }
+    });
+
+    // دالة بدء محادثة جديدة (تفرغ الذاكرة وتنظف الشاشة)
+    window.startNewChat = () => {
+        currentChatContext = []; // تفريغ الذاكرة
+        document.getElementById('chatBox').innerHTML = '<div class="message ai-msg">السلام عليكم , تفضل كيف يمكنني مساعدتك</div>';
+        if(window.innerWidth <= 768) toggleSidebar(); 
+    };
+
+    window.toggleSidebar = () => {
+        document.getElementById('sidebar').classList.toggle('active');
+        document.getElementById('overlay').style.display = document.getElementById('sidebar').classList.contains('active') ? 'block' : 'none';
+    }
+
+    window.handleFileSelect = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        selectedFileName = file.name;
+        document.getElementById('filePreviewContainer').style.display = 'flex';
+
+        if (file.type.startsWith('image/')) {
+            selectedImageFile = file;
+            selectedTextContent = null;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('imagePreview').style.display = 'block';
+                document.getElementById('textPreview').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+            
+        } else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+            selectedImageFile = null;
+            document.getElementById('textPreview').innerText = "جاري قراءة الـ PDF... ⏳";
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('textPreview').style.display = 'block';
+            
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                let fullText = "";
+                
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    fullText += pageText + "\n";
+                }
+                
+                selectedTextContent = fullText.trim() ? fullText : "لا يوجد نص.";
+                document.getElementById('textPreview').innerText = `📑 ${selectedFileName} (${pdf.numPages} صفحات)`;
+            } catch (error) {
+                document.getElementById('textPreview').innerText = "❌ فشل القراءة";
+                selectedTextContent = "حدث خطأ";
+            }
+        } else {
+            selectedImageFile = null;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                selectedTextContent = e.target.result;
+                document.getElementById('imagePreview').style.display = 'none';
+                document.getElementById('textPreview').style.display = 'block';
+                document.getElementById('textPreview').innerText = `📄 ${selectedFileName}`;
+            };
+            reader.readAsText(file);
+        }
+    };
+
+    window.removeFile = () => {
+        selectedImageFile = null;
+        selectedTextContent = null;
+        selectedFileName = "";
+        document.getElementById('fileInput').value = "";
+        document.getElementById('filePreviewContainer').style.display = 'none';
+    };
+
+    function appendMessage(text, sender, imageUrl = null, fileName = null) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message ' + (sender === 'user' ? 'user-msg' : 'ai-msg');
+        
+        let content = "";
+        if (imageUrl) content += `<img src="${imageUrl}" class="chat-image"><br>`;
+        if (fileName) content += `<div class="chat-file">📑 ملف مرفق: ${fileName}</div>`;
+        content += text.replace(/\n/g, '<br>');
+        
+        msgDiv.innerHTML = content;
+        document.getElementById('chatBox').appendChild(msgDiv);
+        document.getElementById('chatBox').scrollTop = document.getElementById('chatBox').scrollHeight;
+    }
+
+    window.fetchHistory = async () => {
+        if (!currentUID) return;
+        try {
+            const res = await fetch(`/history?uid=${currentUID}`);
+            const data = await res.json();
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            
+            if (data.history && data.history.length > 0) {
+                data.history.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'history-item';
+                    div.innerText = item.question || "ملف مرفق 📑"; 
+                    // عند الضغط على محادثة سابقة يتم استرجاعها كذاكرة حالية
+                    div.onclick = () => {
+                        document.getElementById('chatBox').innerHTML = '<div class="message ai-msg">لقد استرجعت هذه النقطة من السجل. يمكنك إكمال الحديث بناءً عليها.</div>';
+                        appendMessage(item.question, 'user', item.image_url);
+                        appendMessage(item.answer, 'ai');
+                        
+                        // تحديث الذاكرة بهذه المحادثة فقط لتكمل عليها
+                        currentChatContext = [
+                            { role: "user", content: item.question },
+                            { role: "assistant", content: item.answer }
+                        ];
+                        
+                        if(window.innerWidth <= 768) toggleSidebar(); 
+                    };
+                    historyList.appendChild(div);
+                });
+            }
+        } catch (err) {}
+    };
+
+    window.askAI = async () => {
+        let question = document.getElementById('questionInput').value.trim();
+        
+        if ((!question && !selectedImageFile && !selectedTextContent) || !currentUID) return;
+
+        let finalQuestion = question;
+        let attachedFileName = null;
+
+        if (selectedTextContent) {
+            finalQuestion = `بناءً على هذا الملف المرفق (${selectedFileName}):\n\n"""\n${selectedTextContent}\n"""\n\nالسؤال: ${question ? question : "لخص هذا الملف وأعطني أهم النقاط فيه."}`;
+            attachedFileName = selectedFileName; 
+        }
+
+        let localPreviewUrl = selectedImageFile ? document.getElementById('imagePreview').src : null;
+        
+        appendMessage(question ? question : "طلب تحليل الملف المرفق.", 'user', localPreviewUrl, attachedFileName);
+        
+        document.getElementById('questionInput').value = '';
+        document.getElementById('sendBtn').disabled = true;
+        document.getElementById('loadingText').style.display = 'block';
+
+        let uploadedImageUrl = "";
+
+        try {
+            if (selectedImageFile) {
+                document.getElementById('loadingText').innerText = "جاري رفع الصورة لسحابة ImgBB...";
+                const formData = new FormData();
+                formData.append('image', selectedImageFile);
+
+                const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
+                const imgbbData = await imgbbRes.json();
+                
+                if(imgbbData.success) {
+                    uploadedImageUrl = imgbbData.data.url;
+                } else {
+                    throw new Error("فشل رفع الصورة: " + (imgbbData.error ? imgbbData.error.message : "خطأ غير معروف"));
+                }
+            }
+
+            removeFile(); 
+            document.getElementById('loadingText').innerText = "جاري التحليل السحابي والرد...";
+
+            const res = await fetch('/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                // إرسال الذاكرة (Context) مع السؤال الجديد
+                body: JSON.stringify({ question: finalQuestion, image_url: uploadedImageUrl, uid: currentUID, context: currentChatContext })
+            });
+            
+            const data = await res.json();
+            
+            if (data.answer) {
+                appendMessage(data.answer, 'ai');
+                
+                // تحديث الذاكرة بالسؤال الجديد والجواب الجديد
+                currentChatContext.push({ role: "user", content: finalQuestion });
+                currentChatContext.push({ role: "assistant", content: data.answer });
+                
+                fetchHistory(); 
+            } else if (data.error) {
+                throw new Error(data.error);
+            } else {
+                throw new Error("حدث خطأ غير متوقع من الخادم.");
+            }
+        } catch (err) {
             appendMessage("❌ حدث خطأ: " + err.message, 'ai');
+        } finally {
+            document.getElementById('sendBtn').disabled = false;
+            document.getElementById('loadingText').style.display = 'none';
+            document.getElementById('loadingText').innerText = "جاري تحليل البيانات...";
+            document.getElementById('questionInput').focus();
+        }
+    };
+
+    window.handleKeyPress = (e) => { if (e.key === 'Enter') askAI(); }
+</script>
+</body>
+</html>e("❌ حدث خطأ: " + err.message, 'ai');
         } finally {
             document.getElementById('sendBtn').disabled = false;
             document.getElementById('loadingText').style.display = 'none';
