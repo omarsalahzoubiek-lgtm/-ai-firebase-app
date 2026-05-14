@@ -29,8 +29,11 @@
         .sidebar { width: 300px; background: var(--primary-dark); color: white; display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 1000; box-shadow: -2px 0 10px rgba(0,0,0,0.1); }
         .sidebar-header { padding: 20px; background: rgba(0,0,0,0.2); font-size: 18px; font-weight: bold; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .history-list { flex: 1; overflow-y: auto; padding: 15px 10px; }
-        .history-item { background: rgba(255,255,255,0.1); padding: 12px 15px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: 0.3s; border-right: 3px solid transparent;}
+        
+        /* شكل المحادثات في القائمة الجانبية */
+        .history-item { background: rgba(255,255,255,0.1); padding: 15px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: 0.3s; border-right: 3px solid transparent;}
         .history-item:hover { background: rgba(255,255,255,0.2); border-color: var(--primary-light); }
+        .history-item.active { background: var(--primary-med); border-color: white; } /* المحادثة النشطة */
         
         .chat-container { flex: 1; display: flex; flex-direction: column; background: var(--bg-light); position: relative; }
         .header { background: white; color: var(--primary-dark); padding: 18px; text-align: center; font-size: 20px; font-weight: bold; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 10;}
@@ -41,7 +44,7 @@
         .new-chat-btn { position: absolute; left: 85px; background: var(--primary-med); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.3s; }
         .new-chat-btn:hover { background: var(--primary-dark); }
 
-        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth;}
         .message { max-width: 80%; padding: 14px 18px; border-radius: 12px; line-height: 1.6; font-size: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .user-msg { background: var(--primary-med); color: white; align-self: flex-start; border-top-right-radius: 0; }
         .ai-msg { background: white; color: #333; align-self: flex-end; border-top-left-radius: 0; border: 1px solid #ddd; }
@@ -92,7 +95,7 @@
 <div class="app-wrapper" id="appScreen">
     <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">☁️ سجل المحادثات السابقة</div>
+        <div class="sidebar-header">💬 المحادثات</div>
         <div class="history-list" id="historyList"></div>
     </div>
     <div class="chat-container">
@@ -145,6 +148,8 @@
     let selectedTextContent = null; 
     let selectedFileName = "";
     
+    // 🧠 المتغيرات الجديدة للتحكم في الجلسات (Sessions)
+    let currentSessionId = null; 
     let currentChatContext = [];
 
     window.login = () => { signInWithEmailAndPassword(auth, document.getElementById('emailInput').value, document.getElementById('passwordInput').value).catch(err => showError("البيانات غير صحيحة")); };
@@ -170,9 +175,15 @@
         }
     });
 
+    // بدء محادثة جديدة (تفريغ كل شيء)
     window.startNewChat = () => {
-        currentChatContext = []; 
-        document.getElementById('chatBox').innerHTML = '<div class="message ai-msg">مرحباً بك! لقد بدأنا محادثة جديدة. يمكنك سؤالي وسأتذكر ما تقوله لي. ✨</div>';
+        currentSessionId = null; // تصفير رقم الجلسة
+        currentChatContext = []; // تصفير الذاكرة
+        
+        // إزالة التحديد عن المحادثات في القائمة الجانبية
+        document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+
+        document.getElementById('chatBox').innerHTML = '<div class="message ai-msg">السلام عليكم , تفضل كيف يمكنني مساعدتك</div>';
         if(window.innerWidth <= 768) toggleSidebar(); 
     };
 
@@ -209,14 +220,12 @@
                 const arrayBuffer = await file.arrayBuffer();
                 const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
                 let fullText = "";
-                
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const textContent = await page.getTextContent();
                     const pageText = textContent.items.map(item => item.str).join(' ');
                     fullText += pageText + "\n";
                 }
-                
                 selectedTextContent = fullText.trim() ? fullText : "لا يوجد نص.";
                 document.getElementById('textPreview').innerText = `📑 ${selectedFileName} (${pdf.numPages} صفحات)`;
             } catch (error) {
@@ -258,6 +267,7 @@
         document.getElementById('chatBox').scrollTop = document.getElementById('chatBox').scrollHeight;
     }
 
+    // جلب قائمة المحادثات (الجلسات)
     window.fetchHistory = async () => {
         if (!currentUID) return;
         try {
@@ -266,25 +276,42 @@
             const historyList = document.getElementById('historyList');
             historyList.innerHTML = '';
             
-            if (data.history && data.history.length > 0) {
-                data.history.forEach(item => {
+            if (data.sessions && data.sessions.length > 0) {
+                data.sessions.forEach(session => {
                     const div = document.createElement('div');
                     div.className = 'history-item';
-                    div.innerText = item.question || "ملف مرفق 📑"; 
+                    if(session.session_id === currentSessionId) div.classList.add('active'); // تمييز المحادثة المفتوحة
+                    div.innerText = session.title; // عرض عنوان المحادثة
+                    
+                    // عند الضغط على المحادثة لفتحها
                     div.onclick = () => {
-                        document.getElementById('chatBox').innerHTML = '<div class="message ai-msg">لقد استرجعت هذه النقطة من السجل. يمكنك إكمال الحديث بناءً عليها.</div>';
-                        appendMessage(item.question, 'user', item.image_url);
-                        appendMessage(item.answer, 'ai');
+                        // 1. تحديد الجلسة المفتوحة
+                        currentSessionId = session.session_id;
+                        currentChatContext = [];
                         
-                        currentChatContext = [
-                            { role: "user", content: item.question },
-                            { role: "assistant", content: item.answer }
-                        ];
+                        document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+                        div.classList.add('active');
+
+                        // 2. تفريغ الشاشة وطباعة كل الرسائل الخاصة بهذه الجلسة
+                        const chatBox = document.getElementById('chatBox');
+                        chatBox.innerHTML = '';
+                        
+                        session.messages.forEach(msg => {
+                            if (msg.role === 'user') {
+                                appendMessage(msg.content, 'user', msg.image_url);
+                                currentChatContext.push({ role: "user", content: msg.content });
+                            } else if (msg.role === 'assistant') {
+                                appendMessage(msg.content, 'ai');
+                                currentChatContext.push({ role: "assistant", content: msg.content });
+                            }
+                        });
                         
                         if(window.innerWidth <= 768) toggleSidebar(); 
                     };
                     historyList.appendChild(div);
                 });
+            } else {
+                historyList.innerHTML = '<div style="text-align:center; color:var(--gray-accent); margin-top:20px;">لا يوجد محادثات</div>';
             }
         } catch (err) {}
     };
@@ -334,18 +361,30 @@
             const res = await fetch('/ask', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: finalQuestion, image_url: uploadedImageUrl, uid: currentUID, context: currentChatContext })
+                // إرسال رقم الجلسة والذاكرة مع الطلب
+                body: JSON.stringify({ 
+                    question: finalQuestion, 
+                    image_url: uploadedImageUrl, 
+                    uid: currentUID, 
+                    context: currentChatContext,
+                    session_id: currentSessionId 
+                })
             });
             
             const data = await res.json();
             
             if (data.answer) {
+                // حفظ رقم الجلسة الجديد إذا كانت المحادثة جديدة
+                if(!currentSessionId && data.session_id) {
+                    currentSessionId = data.session_id;
+                }
+
                 appendMessage(data.answer, 'ai');
                 
                 currentChatContext.push({ role: "user", content: finalQuestion });
                 currentChatContext.push({ role: "assistant", content: data.answer });
                 
-                fetchHistory(); 
+                fetchHistory(); // تحديث القائمة الجانبية
             } else if (data.error) {
                 throw new Error(data.error);
             } else {
