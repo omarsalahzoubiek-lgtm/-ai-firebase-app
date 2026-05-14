@@ -63,7 +63,7 @@ def ask_ai():
                 {"type": "image_url", "image_url": {"url": image_url}}
             ]
         })
-        model_name = "llama-3.2-11b-vision-preview" # النموذج المستقر للصور
+        model_name = "meta-llama/llama-4-scout-17b-16e-instruct" # 👈 أحدث نموذج رؤية من Groq 
     else:
         messages.append({"role": "user", "content": user_question})
         model_name = "llama-3.3-70b-versatile" # النموذج القوي للنصوص
