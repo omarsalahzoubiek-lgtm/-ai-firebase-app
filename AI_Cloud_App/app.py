@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import firebase_admin
 from firebase_admin import credentials, firestore
 
+# تحميل المتغيرات البيئية
 load_dotenv()
 
 app = Flask(__name__)
@@ -16,6 +17,9 @@ CORS(app)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 client = Groq(api_key=GROQ_API_KEY)
 
+# ==========================================
+# الاتصال بـ Firebase
+# ==========================================
 try:
     firebase_cred_json = os.getenv("FIREBASE_CREDENTIALS")
     if firebase_cred_json:
@@ -24,9 +28,14 @@ try:
         firebase_admin.initialize_app(cred)
         db = firestore.client()
         print("✅ تم الاتصال بـ Firebase بنجاح")
+    else:
+        print("⚠️ تحذير: مفاتيح Firebase غير موجودة في السحابة.")
 except Exception as e:
     print(f"❌ خطأ في الاتصال بـ Firebase: {e}")
 
+# ==========================================
+# المسارات (Routes)
+# ==========================================
 @app.route('/', methods=['GET'])
 def home():
     return render_template('index.html')
@@ -35,7 +44,7 @@ def home():
 def ask_ai():
     data = request.json
     user_question = data.get("question", "").strip()
-    image_url = data.get("image_url", "") # استلام رابط الصورة من الواجهة
+    image_url = data.get("image_url", "")
     uid = data.get("uid")
 
     if not user_question and not image_url: 
@@ -46,8 +55,7 @@ def ask_ai():
     # تجهيز رسالة النظام بناءً على وجود صورة أم لا
     messages = [{"role": "system", "content": "أنت مساعد ذكي ومفيد وتتحدث العربية بطلاقة."}]
     
-if image_url:
-        # استخدام النسخة الأخف والأكثر استقراراً للصور
+    if image_url:
         messages.append({
             "role": "user",
             "content": [
@@ -55,10 +63,10 @@ if image_url:
                 {"type": "image_url", "image_url": {"url": image_url}}
             ]
         })
-        model_name = "llama-3.2-11b-vision-preview" # تم التغيير هنا
+        model_name = "llama-3.2-11b-vision-preview" # النموذج المستقر للصور
     else:
         messages.append({"role": "user", "content": user_question})
-        model_name = "llama-3.3-70b-versatile"
+        model_name = "llama-3.3-70b-versatile" # النموذج القوي للنصوص
 
     try:
         response = client.chat.completions.create(
@@ -68,6 +76,7 @@ if image_url:
         )
         ai_answer = response.choices[0].message.content
 
+        # حفظ المحادثة
         chat_document = {
             "uid": uid,
             "question": user_question,
@@ -78,19 +87,20 @@ if image_url:
         db.collection("chats").add(chat_document)
 
         return jsonify({"answer": ai_answer})
-    except Exception as e:
-        # سيقوم السيرفر الآن بطباعة الخطأ بدقة لنعرف المشكلة
-        print(f"❌ خطأ في معالجة الذكاء الاصطناعي: {str(e)}")
-        return jsonify({"error": f"مشكلة في الذكاء الاصطناعي: {str(e)}"}), 500
         
+    except Exception as e:
+        print(f"❌ خطأ في معالجة الذكاء الاصطناعي: {str(e)}")
+        return jsonify({"error": f"حدث خطأ في معالجة الذكاء الاصطناعي: {str(e)}"}), 500
+
 @app.route('/history', methods=['GET'])
 def get_history():
     uid = request.args.get('uid')
-    if not uid: return jsonify({"history":[]})
+    if not uid: 
+        return jsonify({"history": []})
 
     try:
         chats_ref = db.collection("chats").where("uid", "==", uid).stream()
-        chats =[]
+        chats = []
         for doc in chats_ref:
             d = doc.to_dict()
             d['time_val'] = d['timestamp'].timestamp() if d.get('timestamp') else datetime.now().timestamp()
@@ -98,25 +108,35 @@ def get_history():
             
         chats.sort(key=lambda x: x['time_val'])
         
-        # تضمين رابط الصورة في السجل
-        formatted_chats = [{"question": c.get("question", ""), "answer": c.get("answer", ""), "image_url": c.get("image_url", "")} for c in chats[-15:]]
+        formatted_chats = [
+            {
+                "question": c.get("question", ""), 
+                "answer": c.get("answer", ""), 
+                "image_url": c.get("image_url", "")
+            } for c in chats[-15:]
+        ]
         
         return jsonify({"history": formatted_chats})
     except Exception as e:
+        print(f"❌ خطأ في جلب السجل: {e}")
         return jsonify({"error": "تعذر جلب السجل"}), 500
 
 @app.route('/track', methods=['POST'])
 def track_visitor():
     try:
-        ip = request.headers.getlist("X-Forwarded-For")[0] if request.headers.getlist("X-Forwarded-For") else request.remote_addr
+        if request.headers.getlist("X-Forwarded-For"):
+            ip = request.headers.getlist("X-Forwarded-For")[0]
+        else:
+            ip = request.remote_addr
+            
         db.collection("visitors").add({
             "ip_address": ip,
             "device_info": request.headers.get('User-Agent'),
             "visited_at": firestore.SERVER_TIMESTAMP
         })
         return jsonify({"status": "tracked"})
-    except:
-        return jsonify({"error": "error"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)), debug=False)
