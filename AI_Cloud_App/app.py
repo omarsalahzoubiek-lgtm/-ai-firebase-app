@@ -28,8 +28,6 @@ try:
         firebase_admin.initialize_app(cred)
         db = firestore.client()
         print("✅ تم الاتصال بـ Firebase بنجاح")
-    else:
-        print("⚠️ تحذير: مفاتيح Firebase غير موجودة في السحابة.")
 except Exception as e:
     print(f"❌ خطأ في الاتصال بـ Firebase: {e}")
 
@@ -46,15 +44,21 @@ def ask_ai():
     user_question = data.get("question", "").strip()
     image_url = data.get("image_url", "")
     uid = data.get("uid")
+    context = data.get("context", []) # 👈 الميزة الجديدة: استقبال الذاكرة السابقة
 
     if not user_question and not image_url: 
         return jsonify({"error": "الرجاء كتابة سؤال أو رفع صورة"}), 400
     if not uid: 
         return jsonify({"error": "غير مصرح لك. يرجى تسجيل الدخول."}), 401
 
-    # تجهيز رسالة النظام بناءً على وجود صورة أم لا
-    messages = [{"role": "system", "content": "أنت مساعد ذكي ومفيد وتتحدث العربية بطلاقة."}]
+    # 1. إعداد شخصية المساعد
+    messages = [{"role": "system", "content": "أنت مساعد ذكي ومفيد وتتحدث العربية بطلاقة. يرجى مراعاة سياق المحادثة السابقة للإجابة بدقة."}]
     
+    # 2. إضافة الذاكرة السابقة للمحادثة (آخر 10 رسائل لعدم استهلاك الحد الأقصى)
+    for msg in context[-10:]:
+        messages.append(msg)
+    
+    # 3. إضافة السؤال الحالي
     if image_url:
         messages.append({
             "role": "user",
@@ -63,10 +67,10 @@ def ask_ai():
                 {"type": "image_url", "image_url": {"url": image_url}}
             ]
         })
-        model_name = "llama-3.2-11b-vision-preview" # النموذج المستقر للصور
+        model_name = "meta-llama/llama-4-scout-17b-16e-instruct" # النموذج المحدث للصور
     else:
         messages.append({"role": "user", "content": user_question})
-        model_name = "llama-3.3-70b-versatile" # النموذج القوي للنصوص
+        model_name = "llama-3.3-70b-versatile" # النموذج المحدث للنصوص
 
     try:
         response = client.chat.completions.create(
@@ -76,7 +80,7 @@ def ask_ai():
         )
         ai_answer = response.choices[0].message.content
 
-        # حفظ المحادثة
+        # حفظ السؤال والإجابة في قاعدة البيانات
         chat_document = {
             "uid": uid,
             "question": user_question,
